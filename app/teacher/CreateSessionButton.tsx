@@ -114,12 +114,27 @@ export function CreateSessionButton({ courseId, compact, onCreated }: Props) {
         </div>
         <div>
           <label className="block text-sm mb-1">Keyword</label>
-          <input
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="CHECKIN-1"
-          />
+          <div className="flex gap-2">
+            <input
+              className="flex-1 px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="CHECKIN-1"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const gen = Math.random()
+                  .toString(36)
+                  .substring(2, 8)
+                  .toUpperCase();
+                setKeyword(gen);
+              }}
+              className="px-3 py-1 rounded bg-sky-600 text-xs hover:bg-sky-500"
+            >
+              Generate
+            </button>
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
             คีย์เวิร์ดนี้จะใช้ร่วมกับ “รหัสนักศึกษา + รหัสวิชา” เพื่อสร้าง
             payload

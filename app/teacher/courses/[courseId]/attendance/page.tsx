@@ -115,9 +115,17 @@ export default async function AttendancePage({ params }: Props) {
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
-          <h2 className="text-2xl font-semibold text-white mb-4">
-            All Check-ins ({attendances.length})
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold text-white">
+              สร้างคาบ ({course.classSessions.length})
+            </h2>
+            <Link
+              href={`/teacher/courses/${cid}/attendance/report`}
+              className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+            >
+              ดูรายละเอียดการเช็คชื่อ
+            </Link>
+          </div>
 
           {attendances.length === 0 ? (
             <p className="text-white/70">No attendance records yet</p>
@@ -166,13 +174,12 @@ export default async function AttendancePage({ params }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            att.status === "PRESENT"
-                              ? "bg-green-500/20 text-green-300"
-                              : att.status === "DUPLICATE"
+                          className={`px-2 py-1 rounded text-xs font-semibold ${att.status === "PRESENT"
+                            ? "bg-green-500/20 text-green-300"
+                            : att.status === "DUPLICATE"
                               ? "bg-yellow-500/20 text-yellow-300"
                               : "bg-red-500/20 text-red-300"
-                          }`}
+                            }`}
                         >
                           {att.status}
                         </span>
@@ -196,24 +203,30 @@ export default async function AttendancePage({ params }: Props) {
                   (a) => a.classSessionId === session.id
                 );
                 return (
-                  <div
+
+                  <Link
                     key={session.id}
-                    className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20"
+                    href={`/teacher/courses/${cid}/sessions/${session.id}`}
+                    className="block hover:scale-105 transition-transform"
                   >
-                    <div className="font-semibold text-white">
-                      {session.name}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 h-full hover:bg-white/20 transition-colors">
+                      <div className="font-semibold text-white">
+                        {session.name}
+                      </div>
+                      <div className="text-white/60 text-sm">
+                        {new Date(session.date).toLocaleDateString("th-TH")}
+                      </div>
+                      <div className="text-white/80 text-sm mt-2">
+                        Keyword:{" "}
+                        <span className="font-mono">{session.keyword}</span>
+                      </div>
+                      <div className="text-white/80 text-sm">
+                        Check-ins: {sessionAttendances.length}
+                      </div>
                     </div>
-                    <div className="text-white/60 text-sm">
-                      {new Date(session.date).toLocaleDateString("th-TH")}
-                    </div>
-                    <div className="text-white/80 text-sm mt-2">
-                      Keyword: <span className="font-mono">{session.keyword}</span>
-                    </div>
-                    <div className="text-white/80 text-sm">
-                      Check-ins: {sessionAttendances.length}
-                    </div>
-                  </div>
+                  </Link>
                 );
+
               })}
             </div>
           </div>

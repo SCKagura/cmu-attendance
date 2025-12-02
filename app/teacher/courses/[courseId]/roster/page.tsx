@@ -68,12 +68,7 @@ export default async function RosterPage({
           >
             👥 Manage TAs
           </Link>
-          <Link
-            href={`/teacher/courses/${id}/tas`}
-            className="inline-block rounded bg-purple-600 px-3 py-2 text-sm hover:bg-purple-500"
-          >
-            👥 Manage TAs
-          </Link>
+
         </div>
       </div>
 

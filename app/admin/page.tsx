@@ -91,12 +91,20 @@ export default function AdminPage() {
         <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-6 py-4 rounded-lg max-w-md">
           <h2 className="font-bold mb-2">Error</h2>
           <p>{error}</p>
-          <Link
-            href="/teacher"
-            className="mt-4 inline-block text-white underline"
-          >
-            Go to Teacher Dashboard
-          </Link>
+          <div className="mt-4 flex flex-col gap-2">
+            <a
+              href="/api/auth/dev-login?account=admin&role=ADMIN&redirect=/admin"
+              className="inline-block text-blue-300 hover:text-blue-200 underline"
+            >
+              Dev Login (Admin)
+            </a>
+            <Link
+              href="/teacher"
+              className="inline-block text-white underline"
+            >
+              Go to Teacher Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );

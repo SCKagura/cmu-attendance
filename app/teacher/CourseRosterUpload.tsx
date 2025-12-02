@@ -16,10 +16,20 @@ export function CourseRosterUpload({ courseId }: { courseId: number }) {
       body: form,
     });
     setLoading(false);
+    const data = await res.json();
+    setLoading(false);
+
     if (!res.ok) {
-      alert("อัปโหลดไม่สำเร็จ");
+      alert(data.error || "อัปโหลดไม่สำเร็จ");
       return;
     }
+
+    let msg = `อ่าน ${data.readRows} แถว, นำเข้าสำเร็จ ${data.importedRows} คน`;
+    if (data.errors && data.errors.length > 0) {
+      msg += "\n\nพบข้อผิดพลาดบางรายการ:\n" + data.errors.slice(0, 10).join("\n");
+      if (data.errors.length > 10) msg += `\n...และอีก ${data.errors.length - 10} รายการ`;
+    }
+    alert(msg);
     location.reload();
   }
 
