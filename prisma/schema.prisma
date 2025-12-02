@@ -1,33 +1,17 @@
-// prisma/schema.prisma
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-
-enum RoleName {
-  STUDENT
-  TA
-  TEACHER
-  ADMIN
-}
-
-enum AttendanceStatus {
-  PRESENT
-  LATE
-  INVALID
-  DUPLICATE
-  INVALID_QR
-}
-
 model User {
   id             String  @id @default(cuid())
-  cmuAccount     String  @unique // it_account จาก CMU
+  cmuAccount     String  @unique
   cmuEmail       String  @unique
-  studentCode    String? @unique // 65061xxxx ถ้ามี
+  studentCode    String? @unique
   displayNameTh  String?
   displayNameEn  String?
   organizationTh String?
@@ -40,13 +24,14 @@ model User {
   scans        Attendance[] @relation("ScannerAttendances")
   auditLogs    AuditLog[]
   ownedCourses Course[]     @relation("CourseOwner")
+
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
 
 model Role {
   id        Int        @id @default(autoincrement())
-  name      RoleName   @unique
+  name      String     @unique
   userRoles UserRole[]
 }
 
@@ -66,7 +51,7 @@ model UserRole {
 
 model Course {
   id           Int     @id @default(autoincrement())
-  courseCode   String // 261361
+  courseCode   String
   courseNameTh String?
   courseNameEn String?
   academicYear Int
@@ -102,17 +87,16 @@ model ClassSession {
   id         Int      @id @default(autoincrement())
   course     Course   @relation(fields: [courseId], references: [id])
   courseId   Int
-  name       String // Lecture 1, Lab 2, ...
-  classIndex String? // “1”, “2”, “3.1”, etc.
+  name       String
+  classIndex String?
   date       DateTime
   startTime  DateTime
   endTime    DateTime
   keyword    String
   expiresAt  DateTime
 
-  // เอาไว้เทียบ hash จาก QR
-  preHashedSalt  String? // ถ้าอยากเก็บ
-  preHashedValue String? // optional ตาม design
+  preHashedSalt  String?
+  preHashedValue String?
 
   attendances Attendance[]
 
@@ -132,7 +116,7 @@ model Attendance {
   scannerId String
 
   checkedAt  DateTime         @default(now())
-  status     AttendanceStatus
+  status     String
   payloadRaw String?
   ip         String?
   deviceInfo String?
@@ -147,6 +131,6 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id])
   userId    String?
   action    String
-  meta      Json?
+  meta      String?
   createdAt DateTime @default(now())
 }

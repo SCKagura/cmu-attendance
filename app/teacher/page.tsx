@@ -1,71 +1,145 @@
-import { getCurrentUser } from "@/lib/auth";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { TeacherCourseForm } from "./TeacherCourseForm";
-import { CourseRosterUpload } from "./CourseRosterUpload";
-import { CourseDeleteButton } from "./CourseDeleteButton";
+import { getCurrentUser } from "@/lib/auth";
+import CreateCourseButton from "./_components/CreateCourseButton";
+import DeleteCourseButton from "./_components/DeleteCourseButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeacherPage() {
   const user = await getCurrentUser();
-
   if (!user) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Teacher dashboard</h1>
-        <p>ยังไม่ได้ล็อกอินผ่าน CMU Mobile</p>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold">Teacher dashboard</h1>
+        <p className="mt-2 text-sm text-zinc-400">
+          ยังไม่ได้ล็อกอินผ่าน CMU Mobile
+        </p>
+        <a
+          className="underline text-sm"
+          href={`/api/auth/dev-login?account=dev&email=dev%40example.com&role=TEACHER&redirect=%2Fteacher`}
+        >
+          Dev-login
+        </a>
       </div>
     );
   }
 
-  const courses = await prisma.course.findMany({
+  const ownerCourses = await prisma.course.findMany({
     where: { ownerId: user.id },
+    select: {
+      id: true,
+      courseCode: true,
+      courseNameTh: true,
+      academicYear: true,
+      semester: true,
+      createdAt: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
+  const taRoles = await prisma.userRole.findMany({
+    where: {
+      userId: user.id,
+      role: { is: { name: "TA" } },
+      courseId: { not: null },
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          courseCode: true,
+          courseNameTh: true,
+          academicYear: true,
+          semester: true,
+        },
+      },
+    },
+    orderBy: { id: "desc" },
+  });
+  const taCourses = taRoles.map((r) => r.course!).filter(Boolean);
+
   return (
-    <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Teacher dashboard</h1>
-        <p className="text-sm text-gray-400">
-          สวัสดี, {user.displayNameTh || user.cmuAccount} (owner of{" "}
-          {courses.length} course{courses.length === 1 ? "" : "s"})
-        </p>
-      </div>
-
-      <TeacherCourseForm />
-
-      <div>
-        <h2 className="font-semibold mb-2">รายวิชาที่คุณเป็นผู้สอน</h2>
-        {courses.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            ยังไม่มีรายวิชา ลองสร้างวิชาแรกจากฟอร์มด้านบน
+    <div className="p-6 space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Teacher dashboard</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            สวัสดี, {user.cmuAccount} (owner of {ownerCourses.length} course
+            {ownerCourses.length !== 1 ? "s" : ""})
           </p>
-        ) : (
-          <ul className="space-y-2">
-            {courses.map((c) => (
-              <li
-                key={c.id}
-                className="border rounded-lg p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-              >
-                <div>
-                  <div className="font-medium">
-                    {c.courseCode} - {c.courseNameTh ?? c.courseNameEn}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    ปี {c.academicYear} เทอม {c.semester}
-                  </div>
-                </div>
+        </div>
+        <CreateCourseButton />
+      </header>
 
-                <div className="flex flex-col md:flex-row gap-2 items-end md:items-center">
-                  <CourseRosterUpload courseId={c.id} />
-                  <CourseDeleteButton courseId={c.id} />
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">รายวิชาที่คุณเป็นผู้สอน</h2>
+        {ownerCourses.length === 0 ? (
+          <div className="text-sm text-zinc-400">
+            ยังไม่มีวิชา — กด “สร้างรายวิชา” มุมขวาบน
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ownerCourses.map(
+              ({ id, courseCode, courseNameTh, academicYear, semester }) => (
+                <li
+                  key={id}
+                  className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-4"
+                >
+                  <div className="font-medium">
+                    {courseCode} – {courseNameTh ?? ""}
+                  </div>
+                  <div className="mb-3 text-xs text-zinc-400">
+                    ปี {academicYear} เทอม {semester}
+                  </div>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/teacher/courses/${String(id)}/roster`}
+                      className="rounded bg-fuchsia-600 px-3 py-1 text-sm hover:bg-fuchsia-500"
+                    >
+                      จัดการคอร์ส
+                    </Link>
+                    <DeleteCourseButton id={id} />
+                  </div>
+                </li>
+              )
+            )}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">
+          รายวิชาที่คุณเป็นผู้ช่วยสอน (TA)
+        </h2>
+        {taCourses.length === 0 ? (
+          <div className="text-sm text-zinc-400">ยังไม่มีรายวิชาในบทบาท TA</div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {taCourses.map((c) => (
+              <li
+                key={c!.id}
+                className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-4"
+              >
+                <div className="font-medium">
+                  {c!.courseCode} – {c!.courseNameTh ?? ""}
+                </div>
+                <div className="mb-3 text-xs text-zinc-400">
+                  ปี {c!.academicYear} เทอม {c!.semester}
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/teacher/courses/${String(c!.id)}/roster`}
+                    className="rounded bg-sky-600 px-3 py-1 text-sm hover:bg-sky-500"
+                  >
+                    เปิดรายชื่อนักศึกษา
+                  </Link>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
     </div>
   );
 }
