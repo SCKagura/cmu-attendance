@@ -106,3 +106,63 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, userRole });
 }
+
+export async function DELETE(req: NextRequest) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check if user is admin
+  const isAdmin = await prisma.userRole.findFirst({
+    where: {
+      userId: user.id,
+      role: { name: "ADMIN" },
+      courseId: null,
+    },
+  });
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const action = searchParams.get("action");
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+  }
+
+  try {
+    if (action === "delete_user") {
+      // Delete user and all related data (cascade should handle most, but let's be safe)
+      // Prisma cascade delete should work if schema is set up correctly.
+      // If not, we might need to delete related records first.
+      // Assuming cascade is set up or we just delete the user.
+      await prisma.user.delete({
+        where: { id },
+      });
+      return NextResponse.json({ ok: true });
+    } else if (action === "remove_role") {
+      // Remove specific UserRole
+      // id here is userRoleId (the unique ID of the UserRole record)
+      // Wait, the UI needs to pass the UserRole ID.
+      // In the current Admin UI, we have `user.roles` which contains `id` (UserRole ID).
+      // So we can pass that.
+      await prisma.userRole.delete({
+        where: { id: Number(id) },
+      });
+      return NextResponse.json({ ok: true });
+    } else {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("Admin delete error:", error);
+    return NextResponse.json(
+      { error: "Failed to perform action" },
+      { status: 500 }
+    );
+  }
+}

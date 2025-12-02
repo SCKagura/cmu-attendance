@@ -33,7 +33,9 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   const taRoles = await prisma.userRole.findMany({
     where: {
       courseId: cid,
-      role: { name: "TA" },
+      role: {
+        name: { in: ["TA", "CO_TEACHER"] },
+      },
     },
     include: {
       user: {
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
           displayNameEn: true,
         },
       },
+      role: true, // Include role info
     },
   });
 
@@ -61,11 +64,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const cid = Number(courseId);
-  const { cmuAccount } = await req.json();
+  const { input } = await req.json();
 
-  if (!cmuAccount) {
+  if (!input) {
     return NextResponse.json(
-      { error: "Missing cmuAccount" },
+      { error: "Missing input (cmuAccount or email)" },
       { status: 400 }
     );
   }
@@ -82,40 +85,63 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     );
   }
 
-  // Find or create the TA user
-  const taUser = await prisma.user.findUnique({
-    where: { cmuAccount },
-  });
+  // Determine account and email
+  let account = input.trim();
+  let email = "";
 
-  if (!taUser) {
-    return NextResponse.json(
-      { error: "User not found. They need to login at least once." },
-      { status: 404 }
-    );
+  if (account.includes("@")) {
+    email = account;
+    if (email.endsWith("@cmu.ac.th")) {
+      account = email.split("@")[0];
+    } else {
+      account = email.split("@")[0];
+    }
+  } else {
+    email = `${account}@cmu.ac.th`;
   }
 
-  // Get TA role
-  const taRole = await prisma.role.findUnique({
-    where: { name: "TA" },
-  });
+  const { role = "TA" } = await req.json().catch(() => ({}));
+  console.log("Received role from request:", role);
+  const targetRoleName = role === "CO_TEACHER" ? "CO_TEACHER" : "TA";
+  console.log("Target role name:", targetRoleName);
 
-  if (!taRole) {
-    return NextResponse.json({ error: "TA role not found" }, { status: 500 });
-  }
-
-  // Create UserRole
-  const userRole = await prisma.userRole.upsert({
-    where: {
-      userId_roleId_courseId: {
-        userId: taUser.id,
-        roleId: taRole.id,
-        courseId: cid,
-      },
-    },
+  // Find or create the user
+  const targetUser = await prisma.user.upsert({
+    where: { cmuAccount: account },
     update: {},
     create: {
-      userId: taUser.id,
-      roleId: taRole.id,
+      cmuAccount: account,
+      cmuEmail: email,
+    },
+  });
+
+  // Get Role
+  const roleRecord = await prisma.role.upsert({
+    where: { name: targetRoleName },
+    update: {},
+    create: { name: targetRoleName },
+  });
+
+  // Remove existing roles for this user in this course AND global TA/CO_TEACHER roles
+  // This ensures the user only has the specific role assigned for this course
+  await prisma.userRole.deleteMany({
+    where: {
+      userId: targetUser.id,
+      OR: [
+        { courseId: cid }, // Remove any existing role for this course
+        {
+          courseId: null,
+          role: { name: { in: ["TA", "CO_TEACHER"] } }, // Remove global TA/CO_TEACHER roles
+        },
+      ],
+    },
+  });
+
+  // Create UserRole
+  const userRole = await prisma.userRole.create({
+    data: {
+      userId: targetUser.id,
+      roleId: roleRecord.id,
       courseId: cid,
     },
   });

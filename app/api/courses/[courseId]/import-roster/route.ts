@@ -91,11 +91,35 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   // ---------- หาแถวเริ่มข้อมูล (header "รหัสนักศึกษา") ----------
   let dataStartRow = 0;
+  let colMap = {
+    studentCode: 4, // D
+    firstName: 5, // E
+    lastName: 6, // F
+    email: 9, // I
+    secLec: 2, // B
+    secLab: 3, // C
+  };
+
   sheet.eachRow((row, rowNumber) => {
-    const text = cellToString(row.getCell(4).value); // D น่าจะเป็น "รหัสนักศึกษา"
-    if (text.includes("รหัสนักศึกษา")) {
-      dataStartRow = rowNumber + 1;
-    }
+    if (dataStartRow > 0) return; // Found already
+
+    row.eachCell((cell, colNumber) => {
+      const text = cellToString(cell.value).toLowerCase();
+      if (text.includes("รหัสนักศึกษา") || text.includes("student code")) {
+        dataStartRow = rowNumber + 1;
+        colMap.studentCode = colNumber;
+      } else if (text.includes("ชื่อ") || text.includes("first name")) {
+        colMap.firstName = colNumber;
+      } else if (text.includes("นามสกุล") || text.includes("last name")) {
+        colMap.lastName = colNumber;
+      } else if (text.includes("email") || text.includes("อีเมล")) {
+        colMap.email = colNumber;
+      } else if (text.includes("sec") && text.includes("lec")) {
+        colMap.secLec = colNumber;
+      } else if (text.includes("sec") && text.includes("lab")) {
+        colMap.secLab = colNumber;
+      }
+    });
   });
 
   if (!dataStartRow) {
@@ -114,15 +138,15 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     const row = sheet.getRow(r);
 
     // mapping ให้ตรง excel (จากรูปที่ส่งมา)
-    const secLec = cellToString(row.getCell(2).value); // B = SECLEC
-    const secLab = cellToString(row.getCell(3).value); // C = SECLAB
-    const studentCode = cellToString(row.getCell(4).value); // D = รหัสนักศึกษา
+    const secLec = cellToString(row.getCell(colMap.secLec).value);
+    const secLab = cellToString(row.getCell(colMap.secLab).value);
+    const studentCode = cellToString(row.getCell(colMap.studentCode).value);
 
-    const firstName = cellToString(row.getCell(5).value); // E = ชื่อ
-    const lastName = cellToString(row.getCell(6).value); // F = นามสกุล
-    const displayName = [firstName, lastName].filter(Boolean).join(" "); // ✅ ใช้ชื่อเดียว
+    const firstName = cellToString(row.getCell(colMap.firstName).value);
+    const lastName = cellToString(row.getCell(colMap.lastName).value);
+    const displayName = [firstName, lastName].filter(Boolean).join(" ");
 
-    const email = cellToString(row.getCell(9).value); // I = email
+    const email = cellToString(row.getCell(colMap.email).value);
 
     // ข้ามแถวว่าง ๆ (ไม่มีรหัสนักศึกษา)
     if (!studentCode) continue;
@@ -157,6 +181,32 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           isCmu: true,
         },
       });
+
+      // ---------- Assign STUDENT Role ----------
+      const studentRole = await prisma.role.upsert({
+        where: { name: "STUDENT" },
+        update: {},
+        create: { name: "STUDENT" },
+      });
+
+      // Check if user already has STUDENT role (global)
+      const existingStudentRole = await prisma.userRole.findFirst({
+        where: {
+          userId: userRecord.id,
+          roleId: studentRole.id,
+          courseId: null,
+        },
+      });
+
+      if (!existingStudentRole) {
+        await prisma.userRole.create({
+          data: {
+            userId: userRecord.id,
+            roleId: studentRole.id,
+            courseId: null,
+          },
+        });
+      }
 
       // ---------- upsert Enrollment (ลงทะเบียนในวิชานี้) ----------
       await prisma.enrollment.upsert({

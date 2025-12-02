@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
     const account = url.searchParams.get("account") ?? "devuser";
     const email = url.searchParams.get("email") ?? `${account}@example.com`;
     const roleName = url.searchParams.get("role"); // e.g. "TEACHER", "ADMIN"
-    const redirect = url.searchParams.get("redirect") ?? "/teacher";
+    const redirect = url.searchParams.get("redirect") ?? "/";
+    const shouldClear = url.searchParams.get("clear") === "true";
 
     const user = await prisma.user.upsert({
       where: { cmuAccount: account },
@@ -17,6 +18,16 @@ export async function GET(req: NextRequest) {
       create: { cmuAccount: account, cmuEmail: email },
       select: { id: true },
     });
+
+    // If clear is requested, remove all global roles
+    if (shouldClear) {
+      await prisma.userRole.deleteMany({
+        where: {
+          userId: user.id,
+          courseId: null,
+        },
+      });
+    }
 
     // If role is specified, assign it
     if (roleName) {

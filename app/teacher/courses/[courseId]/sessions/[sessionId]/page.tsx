@@ -65,7 +65,7 @@ export default async function SessionPage({ params }: Props) {
     });
 
     // Prepare data for client
-    const students = enrollments.map((e) => ({
+    const students = enrollments.map((e: any) => ({
         id: e.student.id,
         studentCode: e.studentCode || e.student.studentCode || "",
         name:
@@ -93,7 +93,7 @@ export default async function SessionPage({ params }: Props) {
                     sessionDate={session.date}
                     keyword={session.keyword}
                     students={students}
-                    attendances={attendances.map((a) => ({
+                    attendances={attendances.map((a: any) => ({
                         ...a,
                         status: a.status,
                     }))}

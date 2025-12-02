@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { CourseRosterUpload } from "@/app/teacher/CourseRosterUpload";
 import RosterTable from "../_components/RosterTable";
 import Link from "next/link";
@@ -10,6 +11,9 @@ export default async function RosterPage({
 }: {
   params: Promise<{ courseId: string }>;
 }) {
+  const user = await getCurrentUser();
+  if (!user) return <div className="p-6">Unauthorized</div>;
+
   const { courseId } = await params;
   const id = Number(courseId);
   if (!Number.isFinite(id))
@@ -24,9 +28,18 @@ export default async function RosterPage({
       courseNameEn: true,
       academicYear: true,
       semester: true,
+      ownerId: true,
+      userRoles: {
+        where: { userId: user.id },
+        include: { role: true },
+      },
     },
   });
   if (!course) return <div className="p-6 text-red-400">ไม่พบรายวิชา</div>;
+
+  const isOwner = course.ownerId === user.id;
+  const isCoTeacher = course.userRoles.some((ur: any) => ur.role.name === "CO_TEACHER");
+  const canManage = isOwner || isCoTeacher;
 
   const enrollments = await prisma.enrollment.findMany({
     where: { courseId: id },
@@ -62,17 +75,18 @@ export default async function RosterPage({
           >
             📊 Attendance
           </Link>
-          <Link
-            href={`/teacher/courses/${id}/tas`}
-            className="inline-block rounded bg-purple-600 px-3 py-2 text-sm hover:bg-purple-500"
-          >
-            👥 Manage TAs
-          </Link>
-
+          {canManage && (
+            <Link
+              href={`/teacher/courses/${id}/tas`}
+              className="inline-block rounded bg-purple-600 px-3 py-2 text-sm hover:bg-purple-500"
+            >
+              👥 Manage Team
+            </Link>
+          )}
         </div>
       </div>
 
-      <CourseRosterUpload courseId={id} />
+      {canManage && <CourseRosterUpload courseId={id} />}
       <RosterTable enrollments={enrollments} />
     </div>
   );

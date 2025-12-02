@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
+import { ClassSession } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -143,7 +144,7 @@ export default async function AttendancePage({ params }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {attendances.map((att) => (
+                  {attendances.map((att: any) => (
                     <tr
                       key={att.id}
                       className="border-b border-white/10 hover:bg-white/5 transition-colors"
@@ -198,9 +199,9 @@ export default async function AttendancePage({ params }: Props) {
               Sessions ({course.classSessions.length})
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {course.classSessions.map((session) => {
+              {course.classSessions.map((session: ClassSession) => {
                 const sessionAttendances = attendances.filter(
-                  (a) => a.classSessionId === session.id
+                  (a: any) => a.classSessionId === session.id
                 );
                 return (
 

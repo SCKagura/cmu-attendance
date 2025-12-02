@@ -37,11 +37,11 @@ model Role {
 
 model UserRole {
   id       Int     @id @default(autoincrement())
-  user     User    @relation(fields: [userId], references: [id])
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   String
-  role     Role    @relation(fields: [roleId], references: [id])
+  role     Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId   Int
-  course   Course? @relation(fields: [courseId], references: [id])
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId Int?
 
   createdAt DateTime @default(now())
@@ -58,7 +58,7 @@ model Course {
   semester     Int
   ownerId      String
 
-  owner User @relation("CourseOwner", fields: [ownerId], references: [id])
+  owner User @relation("CourseOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   enrollments   Enrollment[]
   classSessions ClassSession[]
@@ -70,9 +70,9 @@ model Course {
 
 model Enrollment {
   id          Int     @id @default(autoincrement())
-  course      Course  @relation(fields: [courseId], references: [id])
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId    Int
-  student     User    @relation(fields: [studentId], references: [id])
+  student     User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId   String
   studentCode String
   section     String?
@@ -85,7 +85,7 @@ model Enrollment {
 
 model ClassSession {
   id         Int      @id @default(autoincrement())
-  course     Course   @relation(fields: [courseId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId   Int
   name       String
   classIndex String?
@@ -106,13 +106,13 @@ model ClassSession {
 
 model Attendance {
   id             Int          @id @default(autoincrement())
-  classSession   ClassSession @relation(fields: [classSessionId], references: [id])
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
   classSessionId Int
 
-  student   User   @relation("StudentAttendances", fields: [studentId], references: [id])
+  student   User   @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
   studentId String
 
-  scanner   User   @relation("ScannerAttendances", fields: [scannerId], references: [id])
+  scanner   User   @relation("ScannerAttendances", fields: [scannerId], references: [id], onDelete: Cascade)
   scannerId String
 
   checkedAt  DateTime         @default(now())
@@ -128,7 +128,7 @@ model Attendance {
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?
   action    String
   meta      String?

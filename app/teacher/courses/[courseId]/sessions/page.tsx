@@ -23,9 +23,18 @@ export default async function SessionsPage({
       courseNameTh: true,
       academicYear: true,
       semester: true,
+      ownerId: true,
+      userRoles: {
+        where: { userId: user.id },
+        include: { role: true },
+      },
     },
   });
   if (!course) return <div className="p-6">Course not found</div>;
+
+  const isOwner = course.ownerId === user.id;
+  const isCoTeacher = course.userRoles.some((ur: any) => ur.role.name === "CO_TEACHER");
+  const canManage = isOwner || isCoTeacher;
 
   const classSessions = await prisma.classSession.findMany({
     where: { courseId: id },
@@ -48,15 +57,17 @@ export default async function SessionsPage({
         </Link>
       </div>
 
-      <Link
-        href={`/teacher/courses/${id}/sessions/create`}
-        className="px-3 py-1 rounded bg-violet-600 hover:bg-violet-500"
-      >
-        สร้างคาบ
-      </Link>
+      {canManage && (
+        <Link
+          href={`/teacher/courses/${id}/sessions/create`}
+          className="px-3 py-1 rounded bg-violet-600 hover:bg-violet-500"
+        >
+          สร้างคาบ
+        </Link>
+      )}
 
       <ul className="divide-y divide-zinc-700 rounded border border-zinc-700">
-        {classSessions.map((s) => (
+        {classSessions.map((s: any) => (
           <li key={s.id} className="p-3 flex items-center justify-between">
             <div>
               <div className="font-medium">{s.name ?? "Class"}</div>

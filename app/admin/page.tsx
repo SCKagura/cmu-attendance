@@ -77,6 +77,44 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteUser(userId: string) {
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+
+    try {
+      const res = await fetch(`/api/admin/users?action=delete_user&id=${userId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unknown error");
+    }
+  }
+
+  async function handleRemoveRole(userRoleId: number) {
+    if (!confirm("Are you sure you want to remove this role?")) return;
+
+    try {
+      const res = await fetch(`/api/admin/users?action=remove_role&id=${userRoleId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to remove role");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unknown error");
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -184,6 +222,7 @@ export default function AdminPage() {
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Student Code</th>
                   <th className="px-4 py-3">Roles</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,16 +246,31 @@ export default function AdminPage() {
                         {user.roles.map((r) => (
                           <span
                             key={r.id}
-                            className="px-2 py-1 rounded text-xs font-semibold bg-blue-500/20 text-blue-300"
+                            className="px-2 py-1 rounded text-xs font-semibold bg-blue-500/20 text-blue-300 flex items-center gap-1"
                           >
                             {r.role.name}
                             {r.course && ` (${r.course.courseCode})`}
+                            <button
+                              onClick={() => handleRemoveRole(r.id)}
+                              className="ml-1 text-red-400 hover:text-red-300 font-bold"
+                              title="Remove Role"
+                            >
+                              ×
+                            </button>
                           </span>
                         ))}
                         {user.roles.length === 0 && (
                           <span className="text-white/50 text-sm">No roles</span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="text-red-400 hover:text-red-300 text-sm underline"
+                      >
+                        Delete User
+                      </button>
                     </td>
                   </tr>
                 ))}
