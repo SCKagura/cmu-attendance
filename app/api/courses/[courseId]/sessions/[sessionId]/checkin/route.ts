@@ -30,6 +30,29 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     );
   }
 
+  // Check if scanner is authorized (TA, Teacher, or Co-Teacher of this course)
+  const course = await prisma.course.findUnique({
+    where: { id: cid },
+    include: {
+      userRoles: {
+        where: {
+          userId: user.id,
+          role: { name: { in: ["TA", "TEACHER", "CO_TEACHER"] } },
+        },
+      },
+    },
+  });
+
+  const isOwner = course?.ownerId === user.id;
+  const isAuthorizedStaff = course && course.userRoles.length > 0;
+
+  if (!isOwner && !isAuthorizedStaff) {
+    return NextResponse.json(
+      { error: "Unauthorized: Only TA, Teacher, or Co-Teacher of this course can scan students" },
+      { status: 403 }
+    );
+  }
+
   const qr: string | undefined = scan?.qr;
   const studentCodeFromScan: string | undefined =
     scan?.student_id || scan?.studentId || scan?.studentCode;

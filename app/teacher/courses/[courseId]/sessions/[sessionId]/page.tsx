@@ -61,6 +61,13 @@ export default async function SessionPage({ params }: Props) {
             studentId: true,
             status: true,
             checkedAt: true,
+            scanner: {
+                select: {
+                    displayNameTh: true,
+                    displayNameEn: true,
+                    cmuAccount: true,
+                },
+            },
         },
     });
 

@@ -120,6 +120,13 @@ export default function SessionDetailClient({
                                 </div>
                             </div>
                         </div>
+                        <a
+                            href={`/api/courses/${courseId}/sessions/${sessionId}/export`}
+                            download
+                            className="px-4 py-2 rounded-lg bg-green-600/20 text-green-300 hover:bg-green-600/40 border border-green-500/30 text-sm font-medium transition-colors text-center"
+                        >
+                            📊 Export to Excel
+                        </a>
                         {showDeleteButton && (
                             <button
                                 onClick={async () => {
