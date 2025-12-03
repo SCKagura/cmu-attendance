@@ -23,6 +23,7 @@ type Props = {
     keyword: string;
     students: Student[];
     attendances: AttendanceRecord[];
+    showDeleteButton?: boolean;
 };
 
 export default function SessionDetailClient({
@@ -33,6 +34,7 @@ export default function SessionDetailClient({
     keyword,
     students,
     attendances,
+    showDeleteButton = true,
 }: Props) {
     const [filter, setFilter] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
     const [search, setSearch] = useState("");
@@ -118,27 +120,29 @@ export default function SessionDetailClient({
                                 </div>
                             </div>
                         </div>
-                        <button
-                            onClick={async () => {
-                                if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) return;
-                                try {
-                                    const res = await fetch(`/api/courses/${courseId}/sessions/${sessionId}`, {
-                                        method: "DELETE"
-                                    });
-                                    if (res.ok) {
-                                        window.location.href = `/teacher/courses/${courseId}/attendance`;
-                                    } else {
-                                        alert("Failed to delete session");
+                        {showDeleteButton && (
+                            <button
+                                onClick={async () => {
+                                    if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) return;
+                                    try {
+                                        const res = await fetch(`/api/courses/${courseId}/sessions/${sessionId}`, {
+                                            method: "DELETE"
+                                        });
+                                        if (res.ok) {
+                                            window.location.href = `/teacher/courses/${courseId}/attendance`;
+                                        } else {
+                                            alert("Failed to delete session");
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
+                                        alert("Error deleting session");
                                     }
-                                } catch (err) {
-                                    console.error(err);
-                                    alert("Error deleting session");
-                                }
-                            }}
-                            className="px-4 py-2 rounded-lg bg-red-600/20 text-red-300 hover:bg-red-600/40 border border-red-500/30 text-sm font-medium transition-colors"
-                        >
-                            🗑️ Delete Session
-                        </button>
+                                }}
+                                className="px-4 py-2 rounded-lg bg-red-600/20 text-red-300 hover:bg-red-600/40 border border-red-500/30 text-sm font-medium transition-colors"
+                            >
+                                🗑️ Delete Session
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

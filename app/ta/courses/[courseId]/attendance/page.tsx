@@ -150,22 +150,28 @@ export default async function TAAttendancePage({
                 ) : (
                     <ul className="divide-y divide-zinc-700 rounded border border-zinc-700">
                         {course.classSessions.map((s: any) => (
-                            <li key={s.id} className="p-3 flex items-center justify-between">
-                                <div>
-                                    <div className="font-medium">{s.name ?? "Class"}</div>
-                                    <div className="text-xs text-zinc-400">
-                                        {new Date(s.date).toLocaleDateString("th-TH")} •{" "}
-                                        {new Date(s.startTime).toLocaleTimeString("th-TH", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}{" "}
-                                        -{" "}
-                                        {new Date(s.endTime).toLocaleTimeString("th-TH", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
+                            <li key={s.id} className="hover:bg-zinc-800/50 transition-colors">
+                                <Link 
+                                    href={`/ta/courses/${cid}/sessions/${s.id}`}
+                                    className="p-3 flex items-center justify-between block"
+                                >
+                                    <div>
+                                        <div className="font-medium">{s.name ?? "Class"}</div>
+                                        <div className="text-xs text-zinc-400">
+                                            {new Date(s.date).toLocaleDateString("th-TH")} •{" "}
+                                            {new Date(s.startTime).toLocaleTimeString("th-TH", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}{" "}
+                                            -{" "}
+                                            {new Date(s.endTime).toLocaleTimeString("th-TH", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
+                                    <div className="text-sm text-blue-400">View →</div>
+                                </Link>
                             </li>
                         ))}
                     </ul>
