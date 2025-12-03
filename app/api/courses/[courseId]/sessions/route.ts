@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     where: { id },
     include: {
       userRoles: {
-        where: { userId: user.id, role: { name: "CO_TEACHER" } },
+        where: { userId: user.id, role: { name: { in: ["TEACHER", "CO_TEACHER"] } } },
       },
     },
   });

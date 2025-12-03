@@ -38,13 +38,9 @@ export default async function Home() {
 
   // Check roles
   const isTeacher = await prisma.userRole.findFirst({
-    where: { userId: user.id, role: { name: "TEACHER" } },
-  });
-  const isCoTeacher = await prisma.userRole.findFirst({
     where: {
       userId: user.id,
-      role: { name: "CO_TEACHER" },
-      courseId: { not: null }, // Course-specific role
+      role: { name: { in: ["TEACHER", "CO_TEACHER"] } },
     },
   });
   const isTA = await prisma.userRole.findFirst({
@@ -72,8 +68,8 @@ export default async function Home() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Student Card - Only show if NOT Teacher/Co-Teacher */}
-          {!isTeacher && !isCoTeacher && (
+          {/* Student Card - Only show if NOT Teacher */}
+          {!isTeacher && (
             <Link
               href="/student"
               className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 p-8 transition-transform hover:scale-[1.02] hover:shadow-2xl"
@@ -112,26 +108,7 @@ export default async function Home() {
             </Link>
           )}
 
-          {/* Co-Teacher Card */}
-          {isCoTeacher && (
-            <Link
-              href="/coteacher"
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 p-8 transition-transform hover:scale-[1.02] hover:shadow-2xl"
-            >
-              <div className="relative z-10">
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Co-Teacher Portal
-                </h2>
-                <p className="text-violet-100 mb-6">
-                  View course details and attendance records.
-                </p>
-                <span className="inline-block bg-white/20 backdrop-blur px-4 py-2 rounded-lg text-white font-semibold group-hover:bg-white/30 transition-colors">
-                  Go to Co-Teacher Dashboard →
-                </span>
-              </div>
-              <div className="absolute -right-4 -bottom-4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-            </Link>
-          )}
+
 
           {/* TA Card */}
           {isTA && (

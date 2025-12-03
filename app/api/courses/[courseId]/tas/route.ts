@@ -102,8 +102,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   console.log("Received role from request:", role);
-  // If role is TEACHER, we assign CO_TEACHER role
-  const targetRoleName = role === "TEACHER" ? "CO_TEACHER" : "TA";
+  // If role is TEACHER, we assign TEACHER role
+  const targetRoleName = role === "TEACHER" ? "TEACHER" : "TA";
   console.log("Target role name:", targetRoleName);
 
   // Find or create the user

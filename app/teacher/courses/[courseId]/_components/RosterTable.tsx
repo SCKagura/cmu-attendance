@@ -13,34 +13,36 @@ export default function RosterTable({
   enrollments: EnrollmentRow[];
 }) {
   return (
-    <div className="overflow-x-auto rounded border border-zinc-700">
-      <table className="min-w-full text-sm">
-        <thead className="bg-zinc-800 text-zinc-200">
-          <tr>
-            <th className="px-3 py-2 text-left">SID</th>
-            <th className="px-3 py-2 text-left">Name</th>
-            <th className="px-3 py-2 text-left">Account</th>
-          </tr>
-        </thead>
-        <tbody>
-          {enrollments.map((e, i) => (
-            <tr key={i} className="border-t border-zinc-800">
-              <td className="px-3 py-2">{e.student.studentCode ?? "-"}</td>
-              <td className="px-3 py-2">
-                {e.student.displayNameTh ?? e.student.displayNameEn ?? "-"}
-              </td>
-              <td className="px-3 py-2">{e.student.cmuAccount ?? "-"}</td>
-            </tr>
-          ))}
-          {enrollments.length === 0 && (
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left text-white">
+          <thead className="bg-white/10 border-b border-white/10">
             <tr>
-              <td colSpan={3} className="px-3 py-6 text-center text-zinc-400">
-                ยังไม่มีรายชื่อ
-              </td>
+              <th className="px-6 py-4 font-semibold">Student ID</th>
+              <th className="px-6 py-4 font-semibold">Name</th>
+              <th className="px-6 py-4 font-semibold">CMU Account</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-white/10">
+            {enrollments.map((e, i) => (
+              <tr key={i} className="hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4 font-mono text-white/90">{e.student.studentCode ?? "-"}</td>
+                <td className="px-6 py-4 text-white/90">
+                  {e.student.displayNameTh ?? e.student.displayNameEn ?? "-"}
+                </td>
+                <td className="px-6 py-4 text-white/70">{e.student.cmuAccount ?? "-"}</td>
+              </tr>
+            ))}
+            {enrollments.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-6 py-8 text-center text-white/40">
+                  No students enrolled yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

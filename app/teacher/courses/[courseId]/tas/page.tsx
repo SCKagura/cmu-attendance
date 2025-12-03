@@ -198,7 +198,7 @@ export default function TeamPage({ params }: { params: Promise<{ courseId: strin
                           m.user.cmuAccount}
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded ${['TEACHER', 'CO_TEACHER'].includes(m.role.name) ? 'bg-pink-500/50 text-white' : 'bg-blue-500/50 text-white'}`}>
-                        {m.role.name}
+                        {['TEACHER', 'CO_TEACHER'].includes(m.role.name) ? 'Teacher' : m.role.name}
                       </span>
                     </div>
                     <div className="text-white/60 text-sm">

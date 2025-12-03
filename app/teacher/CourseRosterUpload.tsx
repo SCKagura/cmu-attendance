@@ -34,57 +34,66 @@ export function CourseRosterUpload({ courseId }: { courseId: number }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="file"
-        accept=".xlsx,.csv"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        className="text-sm file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-white"
-      />
-      <button
-        onClick={onUpload}
-        disabled={!file || loading}
-        className="rounded bg-sky-600 px-3 py-2 text-sm hover:bg-sky-500 disabled:opacity-60"
-      >
-        {loading ? "กำลังอัปโหลด…" : "นำเข้าจาก Excel"}
-      </button>
+    <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+      <div className="flex-1 w-full sm:w-auto">
+        <input
+          type="file"
+          accept=".xlsx,.csv"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm text-white/80
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-lg file:border-0
+            file:text-sm file:font-semibold
+            file:bg-purple-600 file:text-white
+            hover:file:bg-purple-500
+            cursor-pointer"
+        />
+      </div>
       
-      <div className="w-px h-8 bg-zinc-700 mx-2"></div>
+      <div className="flex gap-2 w-full sm:w-auto">
+        <button
+          onClick={onUpload}
+          disabled={!file || loading}
+          className="flex-1 sm:flex-none rounded-lg bg-sky-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? "Uploading..." : "Import Excel"}
+        </button>
 
-      <button
-        onClick={async () => {
-            if(!confirm("Add 'student1' to this course for testing?")) return;
-            setLoading(true);
-            try {
-                const res = await fetch(`/api/courses/${courseId}/enroll-student`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        studentCode: "650610001",
-                        firstName: "Test",
-                        lastName: "Student1",
-                        email: "student1@cmu.ac.th",
-                        cmuAccount: "student1"
-                    })
-                });
-                if(res.ok) {
-                    alert("Added student1 successfully!");
-                    location.reload();
-                } else {
-                    const data = await res.json();
-                    alert(data.error || "Failed to add student1");
-                }
-            } catch(e) {
-                alert("Error adding student");
-            } finally {
-                setLoading(false);
-            }
-        }}
-        disabled={loading}
-        className="rounded bg-emerald-600 px-3 py-2 text-sm hover:bg-emerald-500 disabled:opacity-60"
-      >
-        + Add Test Student (student1)
-      </button>
+        <button
+          onClick={async () => {
+              if(!confirm("Add 'student1' to this course for testing?")) return;
+              setLoading(true);
+              try {
+                  const res = await fetch(`/api/courses/${courseId}/enroll-student`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                          studentCode: "650610001",
+                          firstName: "Test",
+                          lastName: "Student1",
+                          email: "student1@cmu.ac.th",
+                          cmuAccount: "student1"
+                      })
+                  });
+                  if(res.ok) {
+                      alert("Added student1 successfully!");
+                      location.reload();
+                  } else {
+                      const data = await res.json();
+                      alert(data.error || "Failed to add student1");
+                  }
+              } catch(e) {
+                  alert("Error adding student");
+              } finally {
+                  setLoading(false);
+              }
+          }}
+          disabled={loading}
+          className="flex-1 sm:flex-none rounded-lg bg-emerald-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          + Test Student
+        </button>
+      </div>
     </div>
   );
 }
