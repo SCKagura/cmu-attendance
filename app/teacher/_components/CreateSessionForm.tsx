@@ -5,17 +5,44 @@ import { useState } from "react";
 export default function CreateSessionForm({ courseId }: { courseId: number }) {
   const [name, setName] = useState("Class");
   const [keyword, setKeyword] = useState("CHECKIN");
-  const [date, setDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10)
-  ); // yyyy-mm-dd
+  
+  // Helper to get local ISO string for datetime-local input
+  const toLocalISO = (d: Date) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+  };
+
+  // Default start time: current time rounded to nearest minute
   const [start, setStart] = useState<string>(() => {
     const d = new Date();
-    d.setMinutes(0, 0, 0);
-    return d.toISOString().slice(0, 16); // datetime-local
+    d.setSeconds(0, 0);
+    return toLocalISO(d);
   });
-  const [duration, setDuration] = useState<number>(120);
+
+  // Default deadline: start time + 1.5 hours (90 minutes)
+  const [deadline, setDeadline] = useState<string>(() => {
+    const d = new Date();
+    d.setSeconds(0, 0);
+    d.setMinutes(d.getMinutes() + 90);
+    return toLocalISO(d);
+  });
+
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setStart(val);
+    
+    // Auto-update deadline to 1.5 hours after new start time
+    if (val) {
+      const startDate = new Date(val);
+      if (!isNaN(startDate.getTime())) {
+        const deadlineDate = new Date(startDate.getTime() + 90 * 60000); // +90 mins
+        setDeadline(toLocalISO(deadlineDate));
+      }
+    }
+  };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,8 +50,11 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
     setErr(null);
 
     try {
-      const startISO = new Date(start).toISOString();
-      const dateISO = new Date(date).toISOString();
+      const startDateTime = new Date(start);
+      const startISO = startDateTime.toISOString();
+      
+      const deadlineDate = new Date(deadline);
+      const deadlineISO = deadlineDate.toISOString();
 
       const res = await fetch(`/api/courses/${courseId}/sessions`, {
         method: "POST",
@@ -32,9 +62,10 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
         body: JSON.stringify({
           name,
           keyword,
-          date: dateISO,
-          startTime: startISO,
-          expiresInMinutes: duration,
+          date: startISO, // Use start datetime for the date
+          startTime: startISO, // Use start datetime for the start time
+          endTime: deadlineISO,
+          expiresInMinutes: 0,
         }),
       });
 
@@ -84,34 +115,23 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm mb-1">วันที่สอน</label>
-          <input
-            type="date"
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">เริ่ม (datetime)</label>
+        <div className="md:col-span-2">
+          <label className="block text-sm mb-1">เวลาเริ่ม (Start Time)</label>
           <input
             type="datetime-local"
             className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
             value={start}
-            onChange={(e) => setStart(e.target.value)}
+            onChange={handleStartChange}
           />
         </div>
 
-        <div>
-          <label className="block text-sm mb-1">หมดเวลาเช็กอิน (นาที)</label>
+        <div className="md:col-span-2">
+          <label className="block text-sm mb-1">หมดเวลาเช็กอิน (Deadline)</label>
           <input
-            type="number"
-            min={1}
+            type="datetime-local"
             className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
       </div>
