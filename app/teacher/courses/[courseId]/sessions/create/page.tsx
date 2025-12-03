@@ -34,7 +34,7 @@ export default async function CreateSessionPage({
           สร้างคาบเรียน: {course.courseCode}
         </h1>
         <Link
-          href={`/teacher/courses/${id}/sessions`}
+          href={`/teacher/courses/${id}/attendance`}
           className="text-sm text-zinc-400 hover:text-white"
         >
           ← กลับไปหน้าคาบเรียน
