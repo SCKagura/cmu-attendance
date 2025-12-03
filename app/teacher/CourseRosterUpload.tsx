@@ -48,6 +48,43 @@ export function CourseRosterUpload({ courseId }: { courseId: number }) {
       >
         {loading ? "กำลังอัปโหลด…" : "นำเข้าจาก Excel"}
       </button>
+      
+      <div className="w-px h-8 bg-zinc-700 mx-2"></div>
+
+      <button
+        onClick={async () => {
+            if(!confirm("Add 'student1' to this course for testing?")) return;
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/courses/${courseId}/enroll-student`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        studentCode: "650610001",
+                        firstName: "Test",
+                        lastName: "Student1",
+                        email: "student1@cmu.ac.th",
+                        cmuAccount: "student1"
+                    })
+                });
+                if(res.ok) {
+                    alert("Added student1 successfully!");
+                    location.reload();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || "Failed to add student1");
+                }
+            } catch(e) {
+                alert("Error adding student");
+            } finally {
+                setLoading(false);
+            }
+        }}
+        disabled={loading}
+        className="rounded bg-emerald-600 px-3 py-2 text-sm hover:bg-emerald-500 disabled:opacity-60"
+      >
+        + Add Test Student (student1)
+      </button>
     </div>
   );
 }

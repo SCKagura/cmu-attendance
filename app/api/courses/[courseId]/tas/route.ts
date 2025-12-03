@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     where: {
       courseId: cid,
       role: {
-        name: { in: ["TA", "CO_TEACHER"] },
+        name: { in: ["TA", "TEACHER", "CO_TEACHER"] },
       },
     },
     include: {
@@ -64,7 +64,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const cid = Number(courseId);
-  const { input } = await req.json();
+  const body = await req.json();
+  const { input, role = "TA" } = body;
 
   if (!input) {
     return NextResponse.json(
@@ -100,9 +101,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     email = `${account}@cmu.ac.th`;
   }
 
-  const { role = "TA" } = await req.json().catch(() => ({}));
   console.log("Received role from request:", role);
-  const targetRoleName = role === "CO_TEACHER" ? "CO_TEACHER" : "TA";
+  // If role is TEACHER, we assign CO_TEACHER role
+  const targetRoleName = role === "TEACHER" ? "CO_TEACHER" : "TA";
   console.log("Target role name:", targetRoleName);
 
   // Find or create the user
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
         { courseId: cid }, // Remove any existing role for this course
         {
           courseId: null,
-          role: { name: { in: ["TA", "CO_TEACHER"] } }, // Remove global TA/CO_TEACHER roles
+          role: { name: { in: ["TA", "TEACHER", "CO_TEACHER"] } }, // Remove global TA/TEACHER/CO_TEACHER roles
         },
       ],
     },

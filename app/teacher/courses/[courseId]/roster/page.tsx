@@ -38,8 +38,8 @@ export default async function RosterPage({
   if (!course) return <div className="p-6 text-red-400">ไม่พบรายวิชา</div>;
 
   const isOwner = course.ownerId === user.id;
-  const isCoTeacher = course.userRoles.some((ur: any) => ur.role.name === "CO_TEACHER");
-  const canManage = isOwner || isCoTeacher;
+  const isTeacher = course.userRoles.some((ur: any) => ["TEACHER", "CO_TEACHER"].includes(ur.role.name));
+  const canManage = isOwner || isTeacher;
 
   const enrollments = await prisma.enrollment.findMany({
     where: { courseId: id },

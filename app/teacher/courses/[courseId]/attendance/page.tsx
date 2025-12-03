@@ -33,7 +33,7 @@ export default async function AttendancePage({ params }: Props) {
           userRoles: {
             some: {
               userId: user.id,
-              role: { name: "TA" },
+              role: { name: { in: ["TA", "TEACHER"] } },
             },
           },
         },
@@ -117,9 +117,17 @@ export default async function AttendancePage({ params }: Props) {
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-white">
-              สร้างคาบ ({course.classSessions.length})
-            </h2>
+            <div className="flex gap-2">
+              <h2 className="text-2xl font-semibold text-white">
+                สร้างคาบ ({course.classSessions.length})
+              </h2>
+              <Link
+                href={`/teacher/courses/${cid}/sessions/create`}
+                className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+              >
+                + สร้างคาบเรียน
+              </Link>
+            </div>
             <Link
               href={`/teacher/courses/${cid}/attendance/report`}
               className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"

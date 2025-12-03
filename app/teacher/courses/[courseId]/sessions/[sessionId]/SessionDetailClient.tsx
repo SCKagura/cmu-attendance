@@ -99,23 +99,46 @@ export default function SessionDetailClient({
                             </code>
                         </div>
                     </div>
-                    <div className="flex gap-4 text-center">
-                        <div className="bg-green-500/20 p-3 rounded-xl border border-green-500/30 min-w-[100px]">
-                            <div className="text-2xl font-bold text-green-400">
-                                {presentCount}
+                    <div className="flex flex-col gap-4">
+                        <div className="flex gap-4 text-center">
+                            <div className="bg-green-500/20 p-3 rounded-xl border border-green-500/30 min-w-[100px]">
+                                <div className="text-2xl font-bold text-green-400">
+                                    {presentCount}
+                                </div>
+                                <div className="text-xs text-green-200/70 uppercase tracking-wider">
+                                    Present
+                                </div>
                             </div>
-                            <div className="text-xs text-green-200/70 uppercase tracking-wider">
-                                Present
+                            <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/30 min-w-[100px]">
+                                <div className="text-2xl font-bold text-red-400">
+                                    {absentCount}
+                                </div>
+                                <div className="text-xs text-red-200/70 uppercase tracking-wider">
+                                    Absent
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/30 min-w-[100px]">
-                            <div className="text-2xl font-bold text-red-400">
-                                {absentCount}
-                            </div>
-                            <div className="text-xs text-red-200/70 uppercase tracking-wider">
-                                Absent
-                            </div>
-                        </div>
+                        <button
+                            onClick={async () => {
+                                if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) return;
+                                try {
+                                    const res = await fetch(`/api/courses/${courseId}/sessions/${sessionId}`, {
+                                        method: "DELETE"
+                                    });
+                                    if (res.ok) {
+                                        window.location.href = `/teacher/courses/${courseId}/attendance`;
+                                    } else {
+                                        alert("Failed to delete session");
+                                    }
+                                } catch (err) {
+                                    console.error(err);
+                                    alert("Error deleting session");
+                                }
+                            }}
+                            className="px-4 py-2 rounded-lg bg-red-600/20 text-red-300 hover:bg-red-600/40 border border-red-500/30 text-sm font-medium transition-colors"
+                        >
+                            🗑️ Delete Session
+                        </button>
                     </div>
                 </div>
             </div>

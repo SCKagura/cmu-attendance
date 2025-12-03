@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
+import SessionList from "./SessionList";
 
 export default async function SessionsPage({
   params,
@@ -33,8 +34,8 @@ export default async function SessionsPage({
   if (!course) return <div className="p-6">Course not found</div>;
 
   const isOwner = course.ownerId === user.id;
-  const isCoTeacher = course.userRoles.some((ur: any) => ur.role.name === "CO_TEACHER");
-  const canManage = isOwner || isCoTeacher;
+  const isTeacher = course.userRoles.some((ur: any) => ur.role.name === "TEACHER");
+  const canManage = isOwner || isTeacher;
 
   const classSessions = await prisma.classSession.findMany({
     where: { courseId: id },
@@ -66,24 +67,11 @@ export default async function SessionsPage({
         </Link>
       )}
 
-      <ul className="divide-y divide-zinc-700 rounded border border-zinc-700">
-        {classSessions.map((s: any) => (
-          <li key={s.id} className="p-3 flex items-center justify-between">
-            <div>
-              <div className="font-medium">{s.name ?? "Class"}</div>
-              <div className="text-xs text-zinc-400">
-                {new Date(s.date).toLocaleDateString()} • keyword: {s.keyword}
-              </div>
-            </div>
-            <div className="text-sm">
-              เช็กชื่อแล้ว {s._count.attendances} คน
-            </div>
-          </li>
-        ))}
-        {classSessions.length === 0 && (
-          <li className="p-4 text-sm text-zinc-400">ยังไม่มีคาบ</li>
-        )}
-      </ul>
+      <SessionList 
+        sessions={classSessions} 
+        courseId={id} 
+        canManage={canManage} 
+      />
     </div>
   );
 }

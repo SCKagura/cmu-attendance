@@ -108,7 +108,7 @@ export default function TeamPage({ params }: { params: Promise<{ courseId: strin
             Manage Team
           </h1>
           <p className="text-white/70">
-            Add TAs or Co-Teachers to this course
+            Add TAs or Teachers to this course
           </p>
         </div>
 
@@ -150,12 +150,12 @@ export default function TeamPage({ params }: { params: Promise<{ courseId: strin
                   <input
                     type="radio"
                     name="role"
-                    value="CO_TEACHER"
-                    checked={role === "CO_TEACHER"}
+                    value="TEACHER"
+                    checked={role === "TEACHER"}
                     onChange={(e) => setRole(e.target.value)}
                     className="accent-pink-500"
                   />
-                  Co-Teacher
+                  Teacher
                 </label>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function TeamPage({ params }: { params: Promise<{ courseId: strin
                           m.user.displayNameEn ||
                           m.user.cmuAccount}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${m.role.name === 'CO_TEACHER' ? 'bg-pink-500/50 text-white' : 'bg-blue-500/50 text-white'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded ${['TEACHER', 'CO_TEACHER'].includes(m.role.name) ? 'bg-pink-500/50 text-white' : 'bg-blue-500/50 text-white'}`}>
                         {m.role.name}
                       </span>
                     </div>

@@ -34,8 +34,6 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
           keyword,
           date: dateISO,
           startTime: startISO,
-          date: dateISO,
-          startTime: startISO,
           expiresInMinutes: duration,
         }),
       });
@@ -45,8 +43,8 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
         setErr(data.error || `Create session failed (${res.status})`);
         return;
       }
-      // รีโหลดเพื่อเห็นรายการคาบล่าสุด
-      window.location.reload();
+      // Redirect to attendance page after successful creation
+      window.location.href = `/teacher/courses/${courseId}/attendance`;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
       setErr(message);
