@@ -23,6 +23,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     include: {
       userRoles: { include: { role: true } },
       classSessions: {
+        where: {
+            date: {
+                gte: req.nextUrl.searchParams.get("startDate") ? new Date(req.nextUrl.searchParams.get("startDate") as string) : undefined,
+                lte: req.nextUrl.searchParams.get("endDate") ? new Date(new Date(req.nextUrl.searchParams.get("endDate") as string).setHours(23, 59, 59, 999)) : undefined,
+            }
+        },
         orderBy: { date: "asc" },
       },
     },

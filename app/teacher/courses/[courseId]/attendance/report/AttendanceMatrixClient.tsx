@@ -12,6 +12,8 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
     const [search, setSearch] = useState("");
     const [filterSessionId, setFilterSessionId] = useState<string>("ALL");
     const [filterStatus, setFilterStatus] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     // 1. Prepare data structure
     // Map: studentId -> { sessionId -> status }
@@ -69,9 +71,28 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
 
     // 3. Columns (Sessions)
     const sessions = useMemo(() => {
-        if (filterSessionId === "ALL") return course.classSessions;
-        return course.classSessions.filter((s: any) => s.id === Number(filterSessionId));
-    }, [course.classSessions, filterSessionId]);
+        let filtered = course.classSessions;
+
+        // Filter by specific session ID
+        if (filterSessionId !== "ALL") {
+            filtered = filtered.filter((s: any) => s.id === Number(filterSessionId));
+        }
+
+        // Filter by Date Range
+        if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            filtered = filtered.filter((s: any) => new Date(s.date) >= start);
+        }
+
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            filtered = filtered.filter((s: any) => new Date(s.date) <= end);
+        }
+
+        return filtered;
+    }, [course.classSessions, filterSessionId, startDate, endDate]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-6">
@@ -123,6 +144,28 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                             </select>
                         </div>
 
+                        {/* Date Range Filter */}
+                        <div className="md:col-span-2 flex gap-2">
+                            <div className="flex-1">
+                                <label className="block text-xs text-white/60 mb-1">ตั้งแต่วันที่</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 [color-scheme:dark]"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs text-white/60 mb-1">ถึงวันที่</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 [color-scheme:dark]"
+                                />
+                            </div>
+                        </div>
+
                         {/* Status Filter */}
                         <div>
                             <label className="block text-xs text-white/60 mb-1">สถานะ (เฉพาะเมื่อเลือกคาบ)</label>
@@ -146,7 +189,7 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                         {/* Export Button */}
                         <div className="md:col-span-4 flex justify-end">
                             <a
-                                href={`/api/courses/${course.id}/attendance/report/export`}
+                                href={`/api/courses/${course.id}/attendance/report/export?startDate=${startDate}&endDate=${endDate}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-lg shadow-green-900/20"
