@@ -60,6 +60,7 @@ export default async function SessionPage({ params }: Props) {
         select: {
             studentId: true,
             status: true,
+            note: true,
             checkedAt: true,
             scanner: {
                 select: {

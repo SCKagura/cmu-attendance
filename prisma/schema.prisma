@@ -120,6 +120,7 @@ model Attendance {
   payloadRaw String?
   ip         String?
   deviceInfo String?
+  note       String?
 
   createdAt DateTime @default(now())
 

@@ -69,6 +69,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     select: {
       studentId: true,
       status: true,
+      note: true,
       checkedAt: true,
       scanner: {
         select: {
@@ -100,12 +101,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   };
   worksheet.getCell("A1").font = { ...worksheet.getCell("A1").font, color: { argb: "FFFFFFFF" } };
 
-  worksheet.mergeCells("A2:F2");
+  worksheet.mergeCells("A2:G2");
   worksheet.getCell("A2").value = `Session: ${session.name}`;
   worksheet.getCell("A2").font = { bold: true, size: 12 };
   worksheet.getCell("A2").alignment = { horizontal: "center" };
 
-  worksheet.mergeCells("A3:F3");
+  worksheet.mergeCells("A3:G3");
   worksheet.getCell("A3").value = `Date: ${new Date(session.date).toLocaleDateString("th-TH", {
     year: "numeric",
     month: "long",
@@ -114,10 +115,13 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   worksheet.getCell("A3").alignment = { horizontal: "center" };
 
   // Add summary
-  const presentCount = attendances.length;
-  const totalCount = enrollments.length;
-  worksheet.mergeCells("A4:F4");
-  worksheet.getCell("A4").value = `Summary: ${presentCount} Present / ${totalCount} Total Students`;
+  const presentCount = attendances.filter(a => a.status === "PRESENT").length;
+  const lateCount = attendances.filter(a => a.status === "LATE").length;
+  const leaveCount = attendances.filter(a => a.status === "LEAVE").length;
+  const absentCount = enrollments.length - attendances.length; // Assuming absent = no record
+  
+  worksheet.mergeCells("A4:G4");
+  worksheet.getCell("A4").value = `Summary: ${presentCount} Present / ${lateCount} Late / ${leaveCount} Leave / ${absentCount} Absent`;
   worksheet.getCell("A4").font = { bold: true };
   worksheet.getCell("A4").alignment = { horizontal: "center" };
   worksheet.getCell("A4").fill = {
@@ -131,7 +135,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   // Add header row
   const headerRow = worksheet.getRow(6);
-  headerRow.values = ["Student Code", "Name (TH)", "Name (EN)", "Present", "Scanned By", "Checked At"];
+  headerRow.values = ["Student Code", "Name (TH)", "Name (EN)", "Status", "Note", "Scanned By", "Checked At"];
   headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
   headerRow.fill = {
     type: "pattern",
@@ -145,15 +149,16 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   worksheet.getColumn(1).width = 15; // Student Code
   worksheet.getColumn(2).width = 30; // Name TH
   worksheet.getColumn(3).width = 30; // Name EN
-  worksheet.getColumn(4).width = 10; // Present checkbox
-  worksheet.getColumn(5).width = 25; // Scanned By
-  worksheet.getColumn(6).width = 20; // Checked At
+  worksheet.getColumn(4).width = 15; // Status
+  worksheet.getColumn(5).width = 30; // Note
+  worksheet.getColumn(6).width = 25; // Scanned By
+  worksheet.getColumn(7).width = 20; // Checked At
 
   // Add data with checkboxes
   let rowIndex = 7;
   enrollments.forEach((e: any) => {
     const attendance = attendanceMap.get(e.student.id);
-    const isPresent = !!attendance;
+    const status = attendance ? attendance.status : "ABSENT";
     
     const scannerName = attendance?.scanner
       ? attendance.scanner.displayNameTh || attendance.scanner.displayNameEn || attendance.scanner.cmuAccount
@@ -164,29 +169,27 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       e.studentCode || e.student.studentCode || "",
       e.student.displayNameTh || "",
       e.student.displayNameEn || "",
-      isPresent ? "☑" : "☐", // Checkbox
+      status,
+      attendance?.note || "",
       scannerName,
       attendance ? new Date(attendance.checkedAt).toLocaleString("th-TH") : "",
     ];
 
-    // Style checkbox cell
-    row.getCell(4).font = { size: 14 };
+    // Style status cell
+    row.getCell(4).font = { bold: true };
     row.getCell(4).alignment = { horizontal: "center", vertical: "middle" };
     
-    // Color code the row
-    if (isPresent) {
-      row.getCell(4).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFC6EFCE" }, // Light green
-      };
-    } else {
-      row.getCell(4).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFC7CE" }, // Light red
-      };
-    }
+    // Color code the status cell
+    let argb = "FFFFC7CE"; // Red (Absent)
+    if (status === "PRESENT") argb = "FFC6EFCE"; // Green
+    else if (status === "LATE") argb = "FFFFEB9C"; // Yellow
+    else if (status === "LEAVE") argb = "FFBDD7EE"; // Blue
+
+    row.getCell(4).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb },
+    };
 
     // Add borders
     row.eachCell({ includeEmpty: true }, (cell) => {

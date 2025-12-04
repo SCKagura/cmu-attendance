@@ -13,6 +13,7 @@ type AttendanceRecord = {
     studentId: string;
     status: string;
     checkedAt: Date;
+    note?: string | null;
 };
 
 type Props = {
@@ -36,8 +37,12 @@ export default function SessionDetailClient({
     attendances,
     showDeleteButton = true,
 }: Props) {
-    const [filter, setFilter] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
+    const [filter, setFilter] = useState<"ALL" | "PRESENT" | "ABSENT" | "LATE" | "LEAVE">("ALL");
     const [search, setSearch] = useState("");
+    const [editingStudent, setEditingStudent] = useState<any | null>(null);
+    const [editStatus, setEditStatus] = useState("PRESENT");
+    const [editNote, setEditNote] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     // Map student ID to attendance status
     const attendanceMap = useMemo(() => {
@@ -53,7 +58,8 @@ export default function SessionDetailClient({
             return {
                 ...s,
                 isPresent,
-                status: isPresent ? 1 : 0,
+                status: att?.status || "ABSENT",
+                note: att?.note,
                 checkedAt: att?.checkedAt,
             };
         });
@@ -62,8 +68,12 @@ export default function SessionDetailClient({
     const filteredRows = useMemo(() => {
         return rows.filter((r) => {
             // Filter by status
-            if (filter === "PRESENT" && !r.isPresent) return false;
-            if (filter === "ABSENT" && r.isPresent) return false;
+            if (filter !== "ALL") {
+                if (filter === "PRESENT" && r.status !== "PRESENT") return false;
+                if (filter === "ABSENT" && r.status !== "ABSENT") return false;
+                if (filter === "LATE" && r.status !== "LATE") return false;
+                if (filter === "LEAVE" && r.status !== "LEAVE") return false;
+            }
 
             // Filter by search
             if (search) {
@@ -77,8 +87,44 @@ export default function SessionDetailClient({
         });
     }, [rows, filter, search]);
 
-    const presentCount = rows.filter((r) => r.isPresent).length;
-    const absentCount = rows.length - presentCount;
+    const presentCount = rows.filter((r) => r.status === "PRESENT").length;
+    const lateCount = rows.filter((r) => r.status === "LATE").length;
+    const leaveCount = rows.filter((r) => r.status === "LEAVE").length;
+    const absentCount = rows.filter((r) => r.status === "ABSENT").length;
+
+    const handleSaveAttendance = async () => {
+        if (!editingStudent) return;
+        setIsSaving(true);
+        try {
+            const res = await fetch(`/api/courses/${courseId}/sessions/${sessionId}/attendance`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    studentId: editingStudent.id,
+                    status: editStatus,
+                    note: editNote
+                })
+            });
+
+            if (res.ok) {
+                // Reload page to reflect changes (simple way)
+                window.location.reload();
+            } else {
+                alert("Failed to update attendance");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error updating attendance");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const openEditModal = (student: any) => {
+        setEditingStudent(student);
+        setEditStatus(student.status === "ABSENT" ? "PRESENT" : student.status);
+        setEditNote(student.note || "");
+    };
 
     return (
         <div className="space-y-6">
@@ -103,7 +149,15 @@ export default function SessionDetailClient({
                     </div>
                     <div className="flex flex-col gap-4">
                         <div className="flex gap-4 text-center">
-                            <div className="bg-green-500/20 p-3 rounded-xl border border-green-500/30 min-w-[100px]">
+                            <div className="bg-purple-500/20 p-3 rounded-xl border border-purple-500/30 min-w-[80px]">
+                                <div className="text-2xl font-bold text-purple-400">
+                                    {students.length}
+                                </div>
+                                <div className="text-xs text-purple-200/70 uppercase tracking-wider">
+                                    All
+                                </div>
+                            </div>
+                            <div className="bg-green-500/20 p-3 rounded-xl border border-green-500/30 min-w-[80px]">
                                 <div className="text-2xl font-bold text-green-400">
                                     {presentCount}
                                 </div>
@@ -111,7 +165,23 @@ export default function SessionDetailClient({
                                     Present
                                 </div>
                             </div>
-                            <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/30 min-w-[100px]">
+                            <div className="bg-yellow-500/20 p-3 rounded-xl border border-yellow-500/30 min-w-[80px]">
+                                <div className="text-2xl font-bold text-yellow-400">
+                                    {lateCount}
+                                </div>
+                                <div className="text-xs text-yellow-200/70 uppercase tracking-wider">
+                                    Late
+                                </div>
+                            </div>
+                            <div className="bg-blue-500/20 p-3 rounded-xl border border-blue-500/30 min-w-[80px]">
+                                <div className="text-2xl font-bold text-blue-400">
+                                    {leaveCount}
+                                </div>
+                                <div className="text-xs text-blue-200/70 uppercase tracking-wider">
+                                    Leave
+                                </div>
+                            </div>
+                            <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/30 min-w-[80px]">
                                 <div className="text-2xl font-bold text-red-400">
                                     {absentCount}
                                 </div>
@@ -175,6 +245,24 @@ export default function SessionDetailClient({
                         Present
                     </button>
                     <button
+                        onClick={() => setFilter("LATE")}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "LATE"
+                                ? "bg-yellow-500 text-white"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                            }`}
+                    >
+                        Late
+                    </button>
+                    <button
+                        onClick={() => setFilter("LEAVE")}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "LEAVE"
+                                ? "bg-blue-500 text-white"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                            }`}
+                    >
+                        Leave
+                    </button>
+                    <button
                         onClick={() => setFilter("ABSENT")}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "ABSENT"
                                 ? "bg-red-500 text-white"
@@ -201,6 +289,7 @@ export default function SessionDetailClient({
                                 <th className="px-6 py-4 font-semibold">Student ID</th>
                                 <th className="px-6 py-4 font-semibold">Name</th>
                                 <th className="px-6 py-4 font-semibold text-center">Status</th>
+                                <th className="px-6 py-4 font-semibold">Note</th>
                                 <th className="px-6 py-4 font-semibold">Time</th>
                             </tr>
                         </thead>
@@ -215,18 +304,30 @@ export default function SessionDetailClient({
                                     </td>
                                     <td className="px-6 py-4">{row.name}</td>
                                     <td className="px-6 py-4 text-center">
-                                        <span
-                                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${row.status === 1
+                                        <button
+                                            onClick={() => openEditModal(row)}
+                                            className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-xs transition-transform hover:scale-105 ${
+                                                row.status === "PRESENT"
                                                     ? "bg-green-500 text-white"
+                                                    : row.status === "LATE"
+                                                    ? "bg-yellow-500 text-white"
+                                                    : row.status === "LEAVE"
+                                                    ? "bg-blue-500 text-white"
                                                     : "bg-red-500/20 text-red-300 border border-red-500/30"
-                                                }`}
+                                            }`}
                                         >
                                             {row.status}
-                                        </span>
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-white/80 max-w-[200px] truncate" title={row.note || ""}>
+                                        {row.note || "-"}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-white/60">
                                         {row.checkedAt
-                                            ? new Date(row.checkedAt).toLocaleTimeString("th-TH")
+                                            ? new Date(row.checkedAt).toLocaleString("th-TH", {
+                                                dateStyle: "short",
+                                                timeStyle: "medium",
+                                            })
                                             : "-"}
                                     </td>
                                 </tr>
@@ -251,6 +352,68 @@ export default function SessionDetailClient({
                     View Payload (Secret)
                 </Link>
             </div>
+
+
+            {/* Edit Modal */}
+            {editingStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold text-white mb-4">
+                            Edit Attendance: {editingStudent.name}
+                        </h2>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-white/60 mb-2">Status</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {["PRESENT", "LATE", "LEAVE", "ABSENT"].map((s) => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setEditStatus(s)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                editStatus === s
+                                                    ? s === "PRESENT" ? "bg-green-600 text-white"
+                                                    : s === "LATE" ? "bg-yellow-600 text-white"
+                                                    : s === "LEAVE" ? "bg-blue-600 text-white"
+                                                    : "bg-red-600 text-white"
+                                                    : "bg-white/10 text-white hover:bg-white/20"
+                                            }`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm text-white/60 mb-2">Note (Optional)</label>
+                                <textarea
+                                    value={editNote}
+                                    onChange={(e) => setEditNote(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 min-h-[80px]"
+                                    placeholder="Add a note..."
+                                />
+                            </div>
+
+                            <div className="flex gap-3 justify-end mt-6">
+                                <button
+                                    onClick={() => setEditingStudent(null)}
+                                    className="px-4 py-2 rounded-lg text-white/60 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveAttendance}
+                                    disabled={isSaving}
+                                    className="px-6 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors disabled:opacity-50"
+                                >
+                                    {isSaving ? "Saving..." : "Save"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
