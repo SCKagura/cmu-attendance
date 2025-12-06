@@ -19,29 +19,43 @@ export default function RosterTable({
 }: {
   enrollments: EnrollmentRow[];
 }) {
-  const [search, setSearch] = useState("");
+  const [searchNo, setSearchNo] = useState("");
+  const [searchText, setSearchText] = useState("");
 
   const filtered = enrollments.filter((e) => {
-    const s = search.toLowerCase();
+    const sNo = searchNo.trim();
+    const sText = searchText.toLowerCase().trim();
+
     const no = (e.importIndex ?? "").toString();
     const code = (e.student.studentCode ?? "").toLowerCase();
     const nameTh = (e.student.displayNameTh ?? "").toLowerCase();
     const nameEn = (e.student.displayNameEn ?? "").toLowerCase();
-    const email = (e.student.cmuEmail ?? "").toLowerCase();
     
-    return no.includes(s) || code.includes(s) || nameTh.includes(s) || nameEn.includes(s) || email.includes(s);
+    const matchNo = sNo === "" || no.includes(sNo);
+    const matchText = sText === "" || code.includes(sText) || nameTh.includes(sText) || nameEn.includes(sText);
+
+    return matchNo && matchText;
   });
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="flex justify-end">
+      {/* Search Bars */}
+      <div className="flex justify-end gap-2">
         <div className="relative">
             <input
                 type="text"
-                placeholder="Search No., ID, Name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search No..."
+                value={searchNo}
+                onChange={(e) => setSearchNo(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors w-32"
+            />
+        </div>
+        <div className="relative">
+            <input
+                type="text"
+                placeholder="Search ID, Name..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
                 className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors w-64"
             />
             <svg className="w-5 h-5 text-white/40 absolute right-3 top-2.5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
