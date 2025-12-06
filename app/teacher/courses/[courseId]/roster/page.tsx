@@ -30,6 +30,7 @@ export default async function RosterPage({
       semester: true,
       ownerId: true,
       instructorName: true,
+      activeSections: true,
       userRoles: {
         where: { userId: user.id },
         include: { role: true },
@@ -42,8 +43,31 @@ export default async function RosterPage({
   const isTeacher = course.userRoles.some((ur: any) => ["TEACHER", "CO_TEACHER"].includes(ur.role.name));
   const canManage = isOwner || isTeacher;
 
+  // Parse active sections for filtering
+  let activeSections: string[] = [];
+  if (course.activeSections) {
+    try {
+      activeSections = JSON.parse(course.activeSections);
+    } catch (e) {
+      console.error("Failed to parse activeSections:", e);
+    }
+  }
+
+  // Build filter for enrollments based on active sections
+  const enrollmentWhere: any = { courseId: id };
+  if (activeSections.length > 0) {
+    const orConditions = activeSections.map(s => {
+      const [lec, lab] = s.split("|");
+      return {
+        section: lec,
+        labSection: (lab === "null" || lab === "" || lab === "0") ? null : lab
+      };
+    });
+    enrollmentWhere.OR = orConditions;
+  }
+
   const enrollments = await prisma.enrollment.findMany({
-    where: { courseId: id },
+    where: enrollmentWhere,
     include: {
       student: {
         select: {

@@ -9,6 +9,7 @@ type Student = {
     name: string;
     section: string;
     labSection: string;
+    importIndex: number;
 };
 
 type AttendanceRecord = {
@@ -275,7 +276,7 @@ export default function SessionDetailClient({
                                     key={row.id}
                                     className="text-white hover:bg-white/5 transition-colors"
                                 >
-                                    <td className="px-6 py-4 text-white/60">{index + 1}</td>
+                                    <td className="px-6 py-4 text-white/60">{row.importIndex || (index + 1)}</td>
                                     <td className="px-6 py-4">{row.section || "-"}</td>
                                     <td className="px-6 py-4">{row.labSection || "-"}</td>
                                     <td className="px-6 py-4 font-mono text-emerald-300">

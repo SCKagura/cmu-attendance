@@ -37,6 +37,16 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
+  // Parse active sections for filtering
+  let activeSections: string[] = [];
+  if (course.activeSections) {
+    try {
+      activeSections = JSON.parse(course.activeSections);
+    } catch (e) {
+      console.error("Failed to parse activeSections:", e);
+    }
+  }
+
   // Fetch session details
   const session = await prisma.classSession.findUnique({
     where: { id: sid },
@@ -46,9 +56,22 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Fetch all enrolled students
+  // Build filter for enrollments based on active sections
+  const enrollmentWhere: any = { courseId: cid };
+  if (activeSections.length > 0) {
+    const orConditions = activeSections.map(s => {
+      const [lec, lab] = s.split("|");
+      return {
+        section: lec,
+        labSection: (lab === "null" || lab === "" || lab === "0") ? null : lab
+      };
+    });
+    enrollmentWhere.OR = orConditions;
+  }
+
+  // Fetch all enrolled students (filtered by active sections)
   const enrollments = await prisma.enrollment.findMany({
-    where: { courseId: cid },
+    where: enrollmentWhere,
     include: {
       student: {
         select: {
@@ -179,7 +202,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
     const row = worksheet.getRow(rowIndex);
     row.values = [
-      index + 1,
+      e.importIndex || (index + 1), // Use importIndex if available, fallback to index+1
       e.section || "-",
       e.labSection || "-",
       e.studentCode || e.student.studentCode || "",

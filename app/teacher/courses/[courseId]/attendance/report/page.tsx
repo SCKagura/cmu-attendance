@@ -34,15 +34,14 @@ export default async function AttendanceReportPage({ params }: Props) {
                 },
             ],
         },
-        include: {
+        select: {
+            id: true,
+            courseCode: true,
+            courseNameTh: true,
+            courseNameEn: true,
+            activeSections: true,
             classSessions: {
                 orderBy: { date: "asc" },
-            },
-            enrollments: {
-                include: {
-                    student: true,
-                },
-                orderBy: { importIndex: "asc" },
             },
         },
     });
@@ -50,6 +49,38 @@ export default async function AttendanceReportPage({ params }: Props) {
     if (!course) {
         return <div className="p-6 text-white">Course not found or access denied</div>;
     }
+
+    // Parse active sections for filtering
+    let activeSections: string[] = [];
+    if (course.activeSections) {
+        try {
+            activeSections = JSON.parse(course.activeSections);
+        } catch (e) {
+            console.error("Failed to parse activeSections:", e);
+        }
+    }
+
+    // Build filter for enrollments based on active sections
+    const enrollmentWhere: any = { courseId: cid };
+    if (activeSections.length > 0) {
+        const orConditions = activeSections.map(s => {
+            const [lec, lab] = s.split("|");
+            return {
+                section: lec,
+                labSection: (lab === "null" || lab === "" || lab === "0") ? null : lab
+            };
+        });
+        enrollmentWhere.OR = orConditions;
+    }
+
+    // Fetch enrollments with active section filter
+    const enrollments = await prisma.enrollment.findMany({
+        where: enrollmentWhere,
+        include: {
+            student: true,
+        },
+        orderBy: { importIndex: "asc" },
+    });
 
     // Get all attendance records for this course
     const attendances = await prisma.attendance.findMany({
@@ -68,7 +99,10 @@ export default async function AttendanceReportPage({ params }: Props) {
 
     return (
         <AttendanceMatrixClient
-            course={course}
+            course={{
+                ...course,
+                enrollments,
+            }}
             attendances={attendances}
         />
     );

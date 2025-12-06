@@ -58,6 +58,7 @@ model Course {
   academicYear Int
   semester     Int
   ownerId      String
+  activeSections String? // JSON array of "lec|lab" strings for filtering roster view
 
   owner User @relation("CourseOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -83,6 +84,7 @@ model Enrollment {
   createdAt DateTime @default(now())
 
   @@unique([courseId, studentId])
+  @@unique([courseId, studentCode])
 }
 
 model ClassSession {

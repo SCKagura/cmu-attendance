@@ -47,9 +47,32 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
-  // Fetch all enrolled students
+  // Parse active sections for filtering
+  let activeSections: string[] = [];
+  if (course.activeSections) {
+    try {
+      activeSections = JSON.parse(course.activeSections);
+    } catch (e) {
+      console.error("Failed to parse activeSections:", e);
+    }
+  }
+
+  // Build filter for enrollments based on active sections
+  const enrollmentWhere: any = { courseId: cid };
+  if (activeSections.length > 0) {
+    const orConditions = activeSections.map(s => {
+      const [lec, lab] = s.split("|");
+      return {
+        section: lec,
+        labSection: (lab === "null" || lab === "" || lab === "0") ? null : lab
+      };
+    });
+    enrollmentWhere.OR = orConditions;
+  }
+
+  // Fetch all enrolled students (filtered by active sections)
   const enrollments = await prisma.enrollment.findMany({
-    where: { courseId: cid },
+    where: enrollmentWhere,
     include: {
       student: {
         select: {
@@ -162,7 +185,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     let presentCount = 0;
 
     const rowValues: (string | number)[] = [
-      index + 1,
+      e.importIndex || (index + 1), // Use importIndex if available, fallback to index+1
       e.section || "000",
       e.labSection || "000",
       e.studentCode || e.student.studentCode || "",

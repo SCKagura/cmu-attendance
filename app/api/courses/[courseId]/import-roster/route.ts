@@ -65,6 +65,15 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   const formData = await req.formData();
   const file = formData.get("file");
   const format = formData.get("format") as string || "1"; // Default to format 1
+  const action = formData.get("action") as string || "import"; // 'analyze' or 'import'
+  const selectedSectionsJson = formData.get("selectedSections") as string;
+  let selectedSections: string[] | null = null;
+  
+  if (selectedSectionsJson) {
+      try {
+          selectedSections = JSON.parse(selectedSectionsJson);
+      } catch (e) {}
+  }
 
   if (!(file instanceof Blob)) {
     return NextResponse.json(
@@ -93,6 +102,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   // ---------- หาแถวเริ่มข้อมูล (header "รหัสนักศึกษา") ----------
   let dataStartRow = 0;
   let colMap = {
+    no: -1,
     studentCode: -1,
     firstName: -1,
     lastName: -1,
@@ -121,7 +131,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   }
 
   const instructorName = cellToString(sheet.getCell("C5").value).trim();
-  if (instructorName) {
+  if (instructorName && action === "import") {
       await prisma.course.update({
           where: { id },
           data: { instructorName }
@@ -131,9 +141,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   // ---------- Format Logic ----------
   if (format === "1") {
       // Format 1: Standard
-      // Data starts Row 8
-      // A: No, B: ID, C: First, D: Last
       dataStartRow = 8;
+      colMap.no = 1;          // A
       colMap.studentCode = 2; // B
       colMap.firstName = 3;   // C
       colMap.lastName = 4;    // D
@@ -148,9 +157,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   } else if (format === "2") {
       // Format 2: With Email
-      // Data starts Row 8
-      // A: No, B: ID, C: First, D: Last, G: CMU Email
       dataStartRow = 8;
+      colMap.no = 1;          // A
       colMap.studentCode = 2; // B
       colMap.firstName = 3;   // C
       colMap.lastName = 4;    // D
@@ -165,9 +173,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   } else if (format === "3") {
       // Format 3: Code First / Full Detail
-      // Data starts Row 5
-      // A: No (Index), B: SecLec, C: SecLab, D: ID, E: First, F: Last, I: Email
       dataStartRow = 5;
+      colMap.no = 1;          // A
       colMap.studentCode = 4; // D
       colMap.secLec = 2;      // B
       colMap.secLab = 3;      // C
@@ -175,19 +182,28 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       colMap.lastName = 6;    // F
       colMap.email = 9;       // I
   } else {
-      // Fallback / Legacy (Format 4 from previous or "Auto")
-      // We can keep it or default to Format 1. 
-      // Given the specific request, let's default to Format 1 logic if unknown, 
-      // but maybe just error if strict? 
-      // Let's keep a basic fallback for safety but prioritize the 3 new ones.
+      // Fallback
       dataStartRow = 8;
       colMap.studentCode = 2;
       colMap.firstName = 3;
       colMap.lastName = 4;
   }
 
-  // ลบ enrollment เดิมของวิชานี้ก่อน import ใหม่ (กันข้อมูลซ้ำ/ผิด)
-  await prisma.enrollment.deleteMany({ where: { courseId: id } });
+  // If analyzing, we just want to find unique sections
+  const foundSections = new Set<string>();
+  const previewRows: any[] = [];
+
+  // Update active sections for this course (for roster filtering)
+  if (action === "import") {
+      const activeSectionsJson = selectedSections && selectedSections.length > 0 
+          ? JSON.stringify(selectedSections)
+          : null;
+      
+      await prisma.course.update({
+          where: { id },
+          data: { activeSections: activeSectionsJson }
+      });
+  }
 
   let readRows = 0;
   let importedRows = 0;
@@ -196,6 +212,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   // ---------- loop ทีละแถวในตารางนักศึกษา ----------
   for (let r = dataStartRow; r <= sheet.rowCount; r++) {
     const row = sheet.getRow(r);
+    
+    // ... (rest of the loop logic) ...
 
     // Get values based on map
     let studentCode = "";
@@ -230,28 +248,28 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     if (secLec) secLec = secLec.replace(/^0+/, "") || "0"; // Example: 001 -> 1
     if (secLab) secLab = secLab.replace(/^0+/, "") || "0";
 
+    // Collect Section for Analysis (Key: Lec|Lab)
+    const secKey = `${secLec}|${secLab}`;
+    if (secLec) foundSections.add(secKey);
+
+    // Extract Name & Email (Moved up for Analysis Preview)
     let firstName = "";
     let lastName = "";
     let displayName = "";
 
-    if (colMap.firstName !== -1) firstName = cellToString(row.getCell(colMap.firstName).value);
-    if (colMap.lastName !== -1) lastName = cellToString(row.getCell(colMap.lastName).value);
+    if (colMap.firstName !== -1) firstName = cellToString(row.getCell(colMap.firstName).value).trim();
+    if (colMap.lastName !== -1) lastName = cellToString(row.getCell(colMap.lastName).value).trim();
     
     if (colMap.fullName !== -1) {
-        const full = cellToString(row.getCell(colMap.fullName).value);
-        const nextColVal = cellToString(row.getCell(colMap.fullName + 1).value);
-        const prevColVal = cellToString(row.getCell(colMap.fullName - 1).value);
+        const full = cellToString(row.getCell(colMap.fullName).value).trim();
+        const nextColVal = cellToString(row.getCell(colMap.fullName + 1).value).trim();
+        const prevColVal = cellToString(row.getCell(colMap.fullName - 1).value).trim();
         
-        // Logic: If 'full' is one word
         if (full && !full.includes(" ")) {
-            // If we have explicit lastName mapped, use it
             if (lastName) {
                 firstName = full;
                 displayName = `${firstName} ${lastName}`;
-            }
-            // Otherwise try to guess from adjacent columns
-            else if (nextColVal && (format === "1" || format === "2")) {
-                // Allow this logic for Format 2 as well if it looks like a split name
+            } else if (nextColVal && (format === "1" || format === "2")) {
                 firstName = full;
                 lastName = nextColVal;
                 displayName = `${firstName} ${lastName}`;
@@ -264,7 +282,6 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
             }
         } else {
             displayName = full;
-            // Try to split
             const parts = full.split(" ").filter(Boolean);
             if (parts.length > 1) {
                 firstName = parts[0];
@@ -278,14 +295,37 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     }
 
     let email = "";
-    if (colMap.email !== -1) email = cellToString(row.getCell(colMap.email).value);
+    if (colMap.email !== -1) email = cellToString(row.getCell(colMap.email).value).trim();
 
     let cmuAccount = "";
-    if (colMap.cmuAccount !== -1) cmuAccount = cellToString(row.getCell(colMap.cmuAccount).value);
+    if (colMap.cmuAccount !== -1) cmuAccount = cellToString(row.getCell(colMap.cmuAccount).value).trim();
 
-    // Use CMU Account as email if email is missing and account looks like email
     if (!email && cmuAccount && cmuAccount.includes("@")) {
         email = cmuAccount;
+    }
+
+    // If Analyzing, collect preview and continue
+    if (action === "analyze") {
+        if (previewRows.length < 5) {
+             previewRows.push({
+                 no: r,
+                 studentCode,
+                 firstName,
+                 lastName,
+                 section: secLec,
+                 lab: secLab,
+                 email
+             });
+        }
+        readRows++;
+        continue;
+    }
+
+    // If Importing, check if section is selected
+    if (selectedSections && selectedSections.length > 0) {
+        const isMatch = selectedSections.includes(secKey);
+        console.log(`DEBUG: Row ${r}: Code=${studentCode} SecKey=${secKey} Match=${isMatch} Selected=${JSON.stringify(selectedSections)}`);
+        if (!isMatch) continue;
     }
 
     readRows++;
@@ -298,78 +338,45 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       // 3. If not found, create a PLACEHOLDER account
       
       const existingUser = await prisma.user.findUnique({
-          where: { studentCode: studentCode }
+        where: { studentCode },
       });
 
-      let userId = "";
+      let userRecord;
 
       if (existingUser) {
-          userId = existingUser.id;
-          // Update display name if provided
-          // Also update email if it's a placeholder account and we have a real email now
+          // Update existing user
+          // Only update email if it's a placeholder account AND we have a new email
           const isPlaceholder = existingUser.cmuAccount.startsWith("ROSTER_");
+          const updateData: any = {};
           
-          await prisma.user.update({
-              where: { id: userId },
-              data: {
-                  displayNameTh: displayName || undefined,
-                  displayNameEn: displayName || undefined,
-                  cmuEmail: (isPlaceholder && email) ? email : undefined,
-              }
-          });
-      } else {
-          // Create PLACEHOLDER
-          // We use a special prefix to indicate this is not a real login account yet (or just a placeholder)
-          // But since cmuAccount is unique, we need a unique string.
-          const placeholderAccount = `ROSTER_${studentCode}`;
-          // Use provided email if available, otherwise fallback to placeholder
-          const finalEmail = email || `ROSTER_${studentCode}@placeholder.local`;
+          // Update displayName if it's a placeholder or empty
+          if (isPlaceholder || !existingUser.displayNameTh) {
+              updateData.displayNameTh = displayName;
+          }
+          
+          if (isPlaceholder && email) {
+              updateData.cmuEmail = email;
+          }
 
-          const newUser = await prisma.user.create({
+          if (Object.keys(updateData).length > 0) {
+              userRecord = await prisma.user.update({
+                  where: { id: existingUser.id },
+                  data: updateData,
+              });
+          } else {
+              userRecord = existingUser;
+          }
+      } else {
+          // Create new user
+          userRecord = await prisma.user.create({
               data: {
                   studentCode,
-                  cmuAccount: placeholderAccount,
-                  cmuEmail: finalEmail,
-                  displayNameTh: displayName || null,
-                  displayNameEn: displayName || null,
-                  isCmu: true,
-              }
+                  displayNameTh: displayName || "-",
+                  cmuAccount: `ROSTER_${studentCode}_${id}`, // Placeholder
+                  cmuEmail: email || `${studentCode}@placeholder.cmu.ac.th`, // Use extracted email if available
+                  isCmu: false,
+              },
           });
-          userId = newUser.id;
-      }
-      
-      // We need the user object for the next steps (Role assignment)
-      // Since we might have just the ID, let's just use the ID for relations.
-      // But wait, the code below uses userRecord.id.
-      
-      // Let's just return a minimal object or fetch it again if needed, 
-      // but actually we just need the ID for the next steps.
-      const userRecord = { id: userId };
-
-      // ---------- Assign STUDENT Role ----------
-      const studentRole = await prisma.role.upsert({
-        where: { name: "STUDENT" },
-        update: {},
-        create: { name: "STUDENT" },
-      });
-
-      // Check if user already has STUDENT role (global)
-      const existingStudentRole = await prisma.userRole.findFirst({
-        where: {
-          userId: userRecord.id,
-          roleId: studentRole.id,
-          courseId: null,
-        },
-      });
-
-      if (!existingStudentRole) {
-        await prisma.userRole.create({
-          data: {
-            userId: userRecord.id,
-            roleId: studentRole.id,
-            courseId: null,
-          },
-        });
       }
 
       // Read "No." from Column A (Index 1)
@@ -405,16 +412,23 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       });
 
       importedRows++;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      errors.push(`row ${r}: ${msg}`);
+    } catch (err) {
+      console.error(`Error importing row ${r}:`, err);
+      errors.push(`Row ${r} (${studentCode}): ${err}`);
     }
   }
 
+  if (action === "analyze") {
+      return NextResponse.json({ 
+          sections: Array.from(foundSections).sort(),
+          preview: previewRows
+      });
+  }
+
   return NextResponse.json({
-    ok: true,
-    readRows, // จำนวนแถวที่อ่านจากไฟล์
-    importedRows, // จำนวนที่ import สำเร็จ
-    errors, // ถ้ามี error รายบรรทัดจะอยู่ในนี้
+    success: true,
+    readRows,
+    importedRows,
+    errors,
   });
 }
