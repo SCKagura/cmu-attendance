@@ -372,6 +372,14 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
         });
       }
 
+      // Read "No." from Column A (Index 1)
+      const noVal = cellToString(row.getCell(1).value).trim();
+      const realImportIndex = parseInt(noVal);
+      // If valid number, use it. Otherwise fallback to row number (r) or null? 
+      // User wants "according to sheet", so let's try to use the sheet value. 
+      // If it's not a number (e.g. header or empty), we might fallback to r, but for "No" column it should be a number.
+      const finalImportIndex = isNaN(realImportIndex) ? r : realImportIndex;
+
       // ---------- upsert Enrollment (ลงทะเบียนในวิชานี้) ----------
       await prisma.enrollment.upsert({
         where: {
@@ -384,7 +392,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           studentCode,
           section: secLec || null,
           labSection: secLab || null,
-          importIndex: r, // Save row number as import index
+          importIndex: finalImportIndex, 
         },
         create: {
           courseId: id,
@@ -392,7 +400,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           studentCode,
           section: secLec || null,
           labSection: secLab || null,
-          importIndex: r, // Save row number as import index
+          importIndex: finalImportIndex,
         },
       });
 
