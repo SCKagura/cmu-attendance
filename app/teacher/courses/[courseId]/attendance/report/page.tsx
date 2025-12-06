@@ -42,7 +42,7 @@ export default async function AttendanceReportPage({ params }: Props) {
                 include: {
                     student: true,
                 },
-                orderBy: { studentCode: "asc" },
+                orderBy: { importIndex: "asc" },
             },
         },
     });

@@ -64,7 +64,7 @@ export default async function TAPage() {
     const taCourses = taRoles.map((r: any) => r.course!).filter(Boolean);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-900 p-6">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-6">
             <div className="max-w-7xl mx-auto space-y-8">
                 <header className="flex items-center justify-between">
                     <div>
@@ -78,7 +78,7 @@ export default async function TAPage() {
                     </div>
                     <Link
                         href="/"
-                        className="text-sm text-emerald-300 hover:text-emerald-200 underline"
+                        className="text-sm text-white/60 hover:text-white underline transition-colors"
                     >
                         ← Back to Home
                     </Link>
@@ -109,13 +109,13 @@ export default async function TAPage() {
                                     <div className="flex gap-3">
                                         <Link
                                             href={`/ta/courses/${String(c!.id)}/roster`}
-                                            className="flex-1 rounded-lg bg-sky-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 text-center transition-colors"
+                                            className="flex-1 rounded-lg bg-purple-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500 text-center transition-colors"
                                         >
                                             Roster
                                         </Link>
                                         <Link
                                             href={`/ta/courses/${String(c!.id)}/attendance`}
-                                            className="flex-1 rounded-lg bg-emerald-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 text-center transition-colors"
+                                            className="flex-1 rounded-lg bg-pink-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-pink-500 text-center transition-colors"
                                         >
                                             Attendance
                                         </Link>

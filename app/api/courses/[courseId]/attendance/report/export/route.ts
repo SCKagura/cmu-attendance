@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
         },
       },
     },
-    orderBy: { studentCode: "asc" },
+    orderBy: { importIndex: "asc" },
   });
 
   // Fetch all attendance records for this course
@@ -114,10 +114,11 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   // Prepare Header Row
   const headerValues = [
-    "Student Code",
-    "Name (TH)",
-    "Name (EN)",
-    "Section",
+    "No.",
+    "SECLEC",
+    "SECLAB",
+    "Student ID",
+    "Name - Surname",
     ...course.classSessions.map((s) => {
         const date = new Date(s.date).toLocaleDateString("th-TH", { day: 'numeric', month: 'short' });
         return `${date}\n${s.name}`;
@@ -138,32 +139,34 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   headerRow.height = 40;
 
   // Set column widths
-  worksheet.getColumn(1).width = 15; // Student Code
-  worksheet.getColumn(2).width = 25; // Name TH
-  worksheet.getColumn(3).width = 25; // Name EN
-  worksheet.getColumn(4).width = 10; // Section
+  worksheet.getColumn(1).width = 5;  // No.
+  worksheet.getColumn(2).width = 8;  // SECLEC
+  worksheet.getColumn(3).width = 8;  // SECLAB
+  worksheet.getColumn(4).width = 15; // Student ID
+  worksheet.getColumn(5).width = 30; // Name - Surname
   
   // Session columns width
   for (let i = 0; i < course.classSessions.length; i++) {
-      worksheet.getColumn(5 + i).width = 12;
+      worksheet.getColumn(6 + i).width = 12;
   }
   
   // Stats columns
-  const statsStartCol = 5 + course.classSessions.length;
+  const statsStartCol = 6 + course.classSessions.length;
   worksheet.getColumn(statsStartCol).width = 12;
   worksheet.getColumn(statsStartCol + 1).width = 10;
 
   // Add data rows
   let rowIndex = 5;
-  enrollments.forEach((e) => {
+  enrollments.forEach((e, index) => {
     const studentAtts = attendanceMap.get(e.student.id);
     let presentCount = 0;
 
-    const rowValues = [
+    const rowValues: (string | number)[] = [
+      index + 1,
+      e.section || "000",
+      e.labSection || "000",
       e.studentCode || e.student.studentCode || "",
-      e.student.displayNameTh || "",
-      e.student.displayNameEn || "",
-      e.section || "-",
+      e.student.displayNameTh || e.student.displayNameEn || "",
     ];
 
     // Add session data
@@ -188,11 +191,14 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     row.values = rowValues;
 
     // Styling
-    row.getCell(4).alignment = { horizontal: "center" }; // Section center
+    row.getCell(1).alignment = { horizontal: "center" }; // No.
+    row.getCell(2).alignment = { horizontal: "center" }; // SECLEC
+    row.getCell(3).alignment = { horizontal: "center" }; // SECLAB
+    row.getCell(4).alignment = { horizontal: "center" }; // Student ID
     
     // Session cells styling
     for (let i = 0; i < course.classSessions.length; i++) {
-        const cell = row.getCell(5 + i);
+        const cell = row.getCell(6 + i);
         cell.alignment = { horizontal: "center", vertical: "middle" };
         if (cell.value === "✓") {
             cell.font = { color: { argb: "FF00B050" }, bold: true }; // Green check

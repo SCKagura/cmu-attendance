@@ -10,6 +10,7 @@ type Props = {
 
 export default function AttendanceMatrixClient({ course, attendances }: Props) {
     const [search, setSearch] = useState("");
+    const [searchNo, setSearchNo] = useState("");
     const [filterSessionId, setFilterSessionId] = useState<string>("ALL");
     const [filterStatus, setFilterStatus] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
     const [startDate, setStartDate] = useState("");
@@ -28,13 +29,27 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
         return map;
     }, [attendances]);
 
-    // 2. Filter students
+    // 2. Prepare students with original index
+    const studentsWithIndex = useMemo(() => {
+        return course.enrollments.map((enrollment: any, index: number) => ({
+            ...enrollment,
+            originalIndex: index + 1
+        }));
+    }, [course.enrollments]);
+
+    // 3. Filter students
     const filteredStudents = useMemo(() => {
-        return course.enrollments.filter((enrollment: any) => {
+        return studentsWithIndex.filter((enrollment: any) => {
             const s = enrollment.student;
             const fullName = `${s.displayNameTh || ""} ${s.displayNameEn || ""}`.toLowerCase();
             const code = (s.studentCode || "").toLowerCase();
             const searchLower = search.toLowerCase();
+            const noString = enrollment.originalIndex.toString();
+
+            // Search No.
+            if (searchNo && !noString.startsWith(searchNo)) {
+                return false;
+            }
 
             // Search filter
             if (!fullName.includes(searchLower) && !code.includes(searchLower)) {
@@ -50,26 +65,13 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
 
                 if (filterStatus === "PRESENT" && !isPresent) return false;
                 if (filterStatus === "ABSENT" && isPresent) return false;
-            } else {
-                // If viewing ALL sessions, status filter might mean "Has at least one present" or "Has at least one absent"?
-                // Usually matrix view shows all, but let's apply filter to "Any session match" logic or just disable it for ALL sessions?
-                // Let's keep it simple: Status filter only applies when a specific session is selected OR 
-                // we can filter rows that have *at least one* of that status? 
-                // For now, let's disable status filter when Session is ALL to avoid confusion, or implement "Show if ANY session matches".
-                // Let's implement: Show student if they match the criteria for the *selected* session. 
-                // If ALL sessions selected, ignore status filter (or maybe filter by "Perfect Attendance" vs "Some Absence"? Too complex for now).
-                if (filterStatus !== "ALL") {
-                    // For simplicity in Matrix view, let's ignore status filter when showing ALL sessions
-                    // or we could filter students who have *ever* been present/absent?
-                    // Let's just ignore it for ALL sessions for now to keep matrix intact.
-                }
             }
 
             return true;
         });
-    }, [course.enrollments, search, filterSessionId, filterStatus, attendanceMap]);
+    }, [studentsWithIndex, search, searchNo, filterSessionId, filterStatus, attendanceMap]);
 
-    // 3. Columns (Sessions)
+    // 4. Columns (Sessions)
     const sessions = useMemo(() => {
         let filtered = course.classSessions;
 
@@ -114,21 +116,33 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                         {course.courseCode} - {course.courseNameTh}
                     </p>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-4">
-                        {/* Search */}
+                    <div className="mt-6 grid gap-4 md:grid-cols-5">
+                        {/* Search No */}
                         <div>
+                            <label className="block text-xs text-white/60 mb-1">ค้นหาลำดับ (No.)</label>
+                            <input
+                                type="text"
+                                value={searchNo}
+                                onChange={(e) => setSearchNo(e.target.value)}
+                                className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
+                                placeholder="No..."
+                            />
+                        </div>
+
+                        {/* Search */}
+                        <div className="md:col-span-2">
                             <label className="block text-xs text-white/60 mb-1">ค้นหา (ชื่อ/รหัส)</label>
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
-                                placeholder="Search..."
+                                placeholder="Search Name or ID..."
                             />
                         </div>
 
                         {/* Session Filter */}
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="block text-xs text-white/60 mb-1">เลือกคาบ</label>
                             <select
                                 value={filterSessionId}
@@ -167,7 +181,7 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                         </div>
 
                         {/* Status Filter */}
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="block text-xs text-white/60 mb-1">สถานะ (เฉพาะเมื่อเลือกคาบ)</label>
                             <select
                                 value={filterStatus}
@@ -181,25 +195,24 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                             </select>
                         </div>
 
-                        {/* Summary Stats */}
-                        <div className="flex items-center justify-end text-white/80 text-sm">
-                            Showing {filteredStudents.length} students
-                        </div>
-
                         {/* Export Button */}
-                        <div className="md:col-span-4 flex justify-end">
+                        <div className="md:col-span-1 flex items-end">
                             <a
                                 href={`/api/courses/${course.id}/attendance/report/export?startDate=${startDate}&endDate=${endDate}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-lg shadow-green-900/20"
+                                className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-lg shadow-green-900/20 h-[42px]"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                Export Excel
+                                Export
                             </a>
                         </div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-end text-white/80 text-sm">
+                        Showing {filteredStudents.length} students
                     </div>
                 </div>
 
@@ -208,14 +221,17 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                         <table className="w-full text-left text-white border-collapse">
                             <thead>
                                 <tr className="bg-white/10 border-b border-white/20">
-                                    <th className="sticky left-0 z-20 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[100px] border-r border-white/10">
+                                    <th className="sticky left-0 z-30 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[60px] border-r border-white/10 text-center">
+                                        No.
+                                    </th>
+                                    <th className="sticky left-[60px] z-30 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[100px] border-r border-white/10">
                                         รหัสนักศึกษา
                                     </th>
-                                    <th className="sticky left-[100px] z-20 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[200px] border-r border-white/10">
+                                    <th className="sticky left-[160px] z-30 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[200px] border-r border-white/10">
                                         ชื่อ-นามสกุล
                                     </th>
-                                    <th className="sticky left-[300px] z-20 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[80px] border-r border-white/10">
-                                        Section
+                                    <th className="sticky left-[360px] z-30 bg-slate-900/90 backdrop-blur px-4 py-3 min-w-[80px] border-r border-white/10 text-center">
+                                        Sec
                                     </th>
                                     {sessions.map((s: any) => (
                                         <th key={s.id} className="px-2 py-3 text-center min-w-[80px] border-r border-white/10">
@@ -231,8 +247,6 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                                     const s = enrollment.student;
                                     const studentAtts = attendanceMap.get(s.id);
 
-                                    // Calculate total present for this student (across ALL sessions, or filtered sessions?)
-                                    // Usually total should reflect the view.
                                     let presentCount = 0;
                                     sessions.forEach((sess: any) => {
                                         if (studentAtts?.has(sess.id)) presentCount++;
@@ -242,13 +256,16 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
 
                                     return (
                                         <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="sticky left-0 z-10 bg-slate-900/50 backdrop-blur px-4 py-2 font-mono text-sm border-r border-white/10">
+                                            <td className="sticky left-0 z-20 bg-slate-900/50 backdrop-blur px-4 py-2 text-center text-sm border-r border-white/10 font-mono">
+                                                {enrollment.originalIndex}
+                                            </td>
+                                            <td className="sticky left-[60px] z-20 bg-slate-900/50 backdrop-blur px-4 py-2 font-mono text-sm border-r border-white/10">
                                                 {s.studentCode}
                                             </td>
-                                            <td className="sticky left-[100px] z-10 bg-slate-900/50 backdrop-blur px-4 py-2 text-sm border-r border-white/10">
+                                            <td className="sticky left-[160px] z-20 bg-slate-900/50 backdrop-blur px-4 py-2 text-sm border-r border-white/10">
                                                 {s.displayNameTh || s.displayNameEn || s.cmuAccount}
                                             </td>
-                                            <td className="sticky left-[300px] z-10 bg-slate-900/50 backdrop-blur px-4 py-2 text-sm text-center border-r border-white/10">
+                                            <td className="sticky left-[360px] z-20 bg-slate-900/50 backdrop-blur px-4 py-2 text-sm text-center border-r border-white/10">
                                                 {enrollment.section || "-"}
                                             </td>
                                             {sessions.map((sess: any) => {

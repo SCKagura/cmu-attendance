@@ -80,6 +80,8 @@ export default async function SessionPage({ params }: Props) {
             e.student.displayNameTh ||
             e.student.displayNameEn ||
             e.student.cmuAccount,
+        section: e.section || "",
+        labSection: e.labSection || "",
     }));
 
     return (

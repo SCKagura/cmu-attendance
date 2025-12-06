@@ -53,7 +53,8 @@ model Course {
   id           Int     @id @default(autoincrement())
   courseCode   String
   courseNameTh String?
-  courseNameEn String?
+  courseNameEn   String?
+  instructorName String?
   academicYear Int
   semester     Int
   ownerId      String
@@ -77,6 +78,7 @@ model Enrollment {
   studentCode String
   section     String?
   labSection  String?
+  importIndex Int?
 
   createdAt DateTime @default(now())
 

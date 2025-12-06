@@ -81,6 +81,7 @@ export default async function TASessionPage({ params }: Props) {
             studentId: true,
             status: true,
             checkedAt: true,
+            note: true,
         },
     });
 
@@ -122,6 +123,8 @@ export default async function TASessionPage({ params }: Props) {
                         status: a.status,
                     }))}
                     showDeleteButton={false}
+                    showExportButton={false}
+                    readOnly={true}
                 />
             </div>
         </div>

@@ -29,6 +29,7 @@ export default async function RosterPage({
       academicYear: true,
       semester: true,
       ownerId: true,
+      instructorName: true,
       userRoles: {
         where: { userId: user.id },
         include: { role: true },
@@ -49,7 +50,7 @@ export default async function RosterPage({
           studentCode: true,
           displayNameTh: true,
           displayNameEn: true,
-          cmuAccount: true,
+          cmuEmail: true,
         },
       },
     },
@@ -73,6 +74,11 @@ export default async function RosterPage({
             <p className="text-white/60">
               Year {course.academicYear} Semester {course.semester}
             </p>
+            {course.instructorName && (
+               <p className="text-purple-300 mt-1 font-medium">
+                  Instructor: {course.instructorName}
+               </p>
+            )}
           </div>
 
           <div className="flex gap-2">

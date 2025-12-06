@@ -28,21 +28,23 @@ export default async function CreateSessionPage({
   if (!course) return <div className="p-6">Course not found</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          สร้างคาบเรียน: {course.courseCode}
-        </h1>
-        <Link
-          href={`/teacher/courses/${id}/attendance`}
-          className="text-sm text-zinc-400 hover:text-white"
-        >
-          ← กลับไปหน้าคาบเรียน
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">
+            สร้างคาบเรียน: {course.courseCode}
+          </h1>
+          <Link
+            href={`/teacher/courses/${id}/attendance`}
+            className="text-sm text-white/60 hover:text-white transition-colors"
+          >
+            ← กลับไปหน้าคาบเรียน
+          </Link>
+        </div>
 
-      <div className="bg-neutral-900/50 rounded-xl p-6 border border-neutral-800">
-        <CreateSessionForm courseId={id} />
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
+          <CreateSessionForm courseId={id} />
+        </div>
       </div>
     </div>
   );

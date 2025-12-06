@@ -135,7 +135,11 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   // Add header row
   const headerRow = worksheet.getRow(6);
-  headerRow.values = ["Student Code", "Name (TH)", "Name (EN)", "Status", "Note", "Scanned By", "Checked At"];
+  headerRow.values = ["No.", "SECLEC", "SECLAB", "Student ID", "Name - Surname", "", "Status", "Note", "Scanned By", "Checked At"];
+  
+  // Merge Name-Surname columns
+  worksheet.mergeCells("E6:F6");
+  
   headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
   headerRow.fill = {
     type: "pattern",
@@ -146,17 +150,20 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   headerRow.height = 20;
 
   // Set column widths
-  worksheet.getColumn(1).width = 15; // Student Code
-  worksheet.getColumn(2).width = 30; // Name TH
-  worksheet.getColumn(3).width = 30; // Name EN
-  worksheet.getColumn(4).width = 15; // Status
-  worksheet.getColumn(5).width = 30; // Note
-  worksheet.getColumn(6).width = 25; // Scanned By
-  worksheet.getColumn(7).width = 20; // Checked At
+  worksheet.getColumn(1).width = 5;  // No.
+  worksheet.getColumn(2).width = 10; // SECLEC
+  worksheet.getColumn(3).width = 10; // SECLAB
+  worksheet.getColumn(4).width = 15; // Student ID
+  worksheet.getColumn(5).width = 20; // First Name
+  worksheet.getColumn(6).width = 20; // Last Name
+  worksheet.getColumn(7).width = 15; // Status
+  worksheet.getColumn(8).width = 30; // Note
+  worksheet.getColumn(9).width = 25; // Scanned By
+  worksheet.getColumn(10).width = 20; // Checked At
 
   // Add data with checkboxes
   let rowIndex = 7;
-  enrollments.forEach((e: any) => {
+  enrollments.forEach((e: any, index: number) => {
     const attendance = attendanceMap.get(e.student.id);
     const status = attendance ? attendance.status : "ABSENT";
     
@@ -164,11 +171,20 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       ? attendance.scanner.displayNameTh || attendance.scanner.displayNameEn || attendance.scanner.cmuAccount
       : "";
     
+    // Split name
+    const fullName = e.student.displayNameTh || e.student.displayNameEn || "";
+    const nameParts = fullName.split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
     const row = worksheet.getRow(rowIndex);
     row.values = [
+      index + 1,
+      e.section || "-",
+      e.labSection || "-",
       e.studentCode || e.student.studentCode || "",
-      e.student.displayNameTh || "",
-      e.student.displayNameEn || "",
+      firstName,
+      lastName,
       status,
       attendance?.note || "",
       scannerName,
@@ -176,8 +192,8 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     ];
 
     // Style status cell
-    row.getCell(4).font = { bold: true };
-    row.getCell(4).alignment = { horizontal: "center", vertical: "middle" };
+    row.getCell(7).font = { bold: true };
+    row.getCell(7).alignment = { horizontal: "center", vertical: "middle" };
     
     // Color code the status cell
     let argb = "FFFFC7CE"; // Red (Absent)
@@ -185,7 +201,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     else if (status === "LATE") argb = "FFFFEB9C"; // Yellow
     else if (status === "LEAVE") argb = "FFBDD7EE"; // Blue
 
-    row.getCell(4).fill = {
+    row.getCell(7).fill = {
       type: "pattern",
       pattern: "solid",
       fgColor: { argb },

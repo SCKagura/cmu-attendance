@@ -87,7 +87,7 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="border rounded-xl p-4 space-y-3 bg-neutral-900/40"
+      className="space-y-4"
     >
       <h2 className="font-semibold mb-1">สร้างคาบใหม่</h2>
 

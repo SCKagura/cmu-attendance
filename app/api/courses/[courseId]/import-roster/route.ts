@@ -64,6 +64,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   // ---------- ดึงไฟล์จาก formData ----------
   const formData = await req.formData();
   const file = formData.get("file");
+  const format = formData.get("format") as string || "1"; // Default to format 1
 
   if (!(file instanceof Blob)) {
     return NextResponse.json(
@@ -92,38 +93,97 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   // ---------- หาแถวเริ่มข้อมูล (header "รหัสนักศึกษา") ----------
   let dataStartRow = 0;
   let colMap = {
-    studentCode: 4, // D
-    firstName: 5, // E
-    lastName: 6, // F
-    email: 9, // I
-    secLec: 2, // B
-    secLab: 3, // C
+    studentCode: -1,
+    firstName: -1,
+    lastName: -1,
+    fullName: -1, // สำหรับ format ที่มีชื่อ-นามสกุลในช่องเดียว หรือ merged header
+    email: -1,
+    cmuAccount: -1,
+    secLec: -1,
+    secLab: -1,
+    section: -1, // General section column
   };
 
-  sheet.eachRow((row, rowNumber) => {
-    if (dataStartRow > 0) return; // Found already
+  let globalSecLec = "";
+  let globalSecLab = "";
 
-    row.eachCell((cell, colNumber) => {
-      const text = cellToString(cell.value).toLowerCase();
-      if (text.includes("รหัสนักศึกษา") || text.includes("student code")) {
-        dataStartRow = rowNumber + 1;
-        colMap.studentCode = colNumber;
-      } else if (text.includes("ชื่อ") || text.includes("first name")) {
-        colMap.firstName = colNumber;
-      } else if (text.includes("นามสกุล") || text.includes("last name")) {
-        colMap.lastName = colNumber;
-      } else if (text.includes("email") || text.includes("อีเมล")) {
-        colMap.email = colNumber;
-      } else if (text.includes("sec") && text.includes("lec")) {
-        colMap.secLec = colNumber;
-      } else if (text.includes("sec") && text.includes("lab")) {
-        colMap.secLab = colNumber;
+  // ---------- Validation & Metadata Extraction ----------
+  // All 3 formats share similar metadata structure:
+  // C2: Course Code
+  // C4: Section (Format 1&2) - Format 3 has section in columns
+  // C5: Instructor Name
+
+  const c2 = cellToString(sheet.getCell("C2").value).trim();
+  if (c2 !== course.courseCode) {
+      return NextResponse.json({ 
+          error: `รหัสวิชาในไฟล์ (${c2}) ไม่ตรงกับวิชานี้ (${course.courseCode})` 
+      }, { status: 400 });
+  }
+
+  const instructorName = cellToString(sheet.getCell("C5").value).trim();
+  if (instructorName) {
+      await prisma.course.update({
+          where: { id },
+          data: { instructorName }
+      });
+  }
+
+  // ---------- Format Logic ----------
+  if (format === "1") {
+      // Format 1: Standard
+      // Data starts Row 8
+      // A: No, B: ID, C: First, D: Last
+      dataStartRow = 8;
+      colMap.studentCode = 2; // B
+      colMap.firstName = 3;   // C
+      colMap.lastName = 4;    // D
+      
+      // Section from header C4: "001/002" -> Lec 001, Lab 002
+      const secVal = cellToString(sheet.getCell("C4").value).trim();
+      if (secVal) {
+          const parts = secVal.split("/");
+          if (parts.length > 0) globalSecLec = parts[0].trim();
+          if (parts.length > 1) globalSecLab = parts[1].trim();
       }
-    });
-  });
 
-  if (!dataStartRow) {
-    dataStartRow = 5; // fallback
+  } else if (format === "2") {
+      // Format 2: With Email
+      // Data starts Row 8
+      // A: No, B: ID, C: First, D: Last, G: CMU Email
+      dataStartRow = 8;
+      colMap.studentCode = 2; // B
+      colMap.firstName = 3;   // C
+      colMap.lastName = 4;    // D
+      colMap.email = 7;       // G
+      
+      const secVal = cellToString(sheet.getCell("C4").value).trim();
+      if (secVal) {
+          const parts = secVal.split("/");
+          if (parts.length > 0) globalSecLec = parts[0].trim();
+          if (parts.length > 1) globalSecLab = parts[1].trim();
+      }
+
+  } else if (format === "3") {
+      // Format 3: Code First / Full Detail
+      // Data starts Row 5
+      // A: No (Index), B: SecLec, C: SecLab, D: ID, E: First, F: Last, I: Email
+      dataStartRow = 5;
+      colMap.studentCode = 4; // D
+      colMap.secLec = 2;      // B
+      colMap.secLab = 3;      // C
+      colMap.firstName = 5;   // E
+      colMap.lastName = 6;    // F
+      colMap.email = 9;       // I
+  } else {
+      // Fallback / Legacy (Format 4 from previous or "Auto")
+      // We can keep it or default to Format 1. 
+      // Given the specific request, let's default to Format 1 logic if unknown, 
+      // but maybe just error if strict? 
+      // Let's keep a basic fallback for safety but prioritize the 3 new ones.
+      dataStartRow = 8;
+      colMap.studentCode = 2;
+      colMap.firstName = 3;
+      colMap.lastName = 4;
   }
 
   // ลบ enrollment เดิมของวิชานี้ก่อน import ใหม่ (กันข้อมูลซ้ำ/ผิด)
@@ -137,50 +197,154 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   for (let r = dataStartRow; r <= sheet.rowCount; r++) {
     const row = sheet.getRow(r);
 
-    // mapping ให้ตรง excel (จากรูปที่ส่งมา)
-    const secLec = cellToString(row.getCell(colMap.secLec).value);
-    const secLab = cellToString(row.getCell(colMap.secLab).value);
-    const studentCode = cellToString(row.getCell(colMap.studentCode).value);
-
-    const firstName = cellToString(row.getCell(colMap.firstName).value);
-    const lastName = cellToString(row.getCell(colMap.lastName).value);
-    const displayName = [firstName, lastName].filter(Boolean).join(" ");
-
-    const email = cellToString(row.getCell(colMap.email).value);
+    // Get values based on map
+    let studentCode = "";
+    if (colMap.studentCode !== -1) studentCode = cellToString(row.getCell(colMap.studentCode).value);
+    
+    // Try to find student code in first few columns if not mapped (Only for Format 1 or fallback)
+    if (!studentCode && format === "1") {
+        for(let c=1; c<=5; c++) {
+            const val = cellToString(row.getCell(c).value);
+            if (/^\d{9}$/.test(val)) {
+                studentCode = val;
+                break;
+            }
+        }
+    }
 
     // ข้ามแถวว่าง ๆ (ไม่มีรหัสนักศึกษา)
-    if (!studentCode) continue;
+    if (!studentCode || !/^\d+$/.test(studentCode)) continue;
+
+    let secLec = "";
+    let secLab = "";
+    
+    if (colMap.secLec !== -1) secLec = cellToString(row.getCell(colMap.secLec).value);
+    if (colMap.secLab !== -1) secLab = cellToString(row.getCell(colMap.secLab).value);
+    if (colMap.section !== -1 && !secLec) secLec = cellToString(row.getCell(colMap.section).value);
+
+    // Fallback to global section info
+    if (!secLec && globalSecLec) secLec = globalSecLec;
+    if (!secLab && globalSecLab) secLab = globalSecLab;
+
+    // Clean up section (remove leading zeros if needed, or keep as is)
+    if (secLec) secLec = secLec.replace(/^0+/, "") || "0"; // Example: 001 -> 1
+    if (secLab) secLab = secLab.replace(/^0+/, "") || "0";
+
+    let firstName = "";
+    let lastName = "";
+    let displayName = "";
+
+    if (colMap.firstName !== -1) firstName = cellToString(row.getCell(colMap.firstName).value);
+    if (colMap.lastName !== -1) lastName = cellToString(row.getCell(colMap.lastName).value);
+    
+    if (colMap.fullName !== -1) {
+        const full = cellToString(row.getCell(colMap.fullName).value);
+        const nextColVal = cellToString(row.getCell(colMap.fullName + 1).value);
+        const prevColVal = cellToString(row.getCell(colMap.fullName - 1).value);
+        
+        // Logic: If 'full' is one word
+        if (full && !full.includes(" ")) {
+            // If we have explicit lastName mapped, use it
+            if (lastName) {
+                firstName = full;
+                displayName = `${firstName} ${lastName}`;
+            }
+            // Otherwise try to guess from adjacent columns
+            else if (nextColVal && (format === "1" || format === "2")) {
+                // Allow this logic for Format 2 as well if it looks like a split name
+                firstName = full;
+                lastName = nextColVal;
+                displayName = `${firstName} ${lastName}`;
+            } else if (prevColVal && (colMap.fullName - 1 !== colMap.studentCode) && (format === "1")) {
+                firstName = prevColVal;
+                lastName = full;
+                displayName = `${firstName} ${lastName}`;
+            } else {
+                displayName = full;
+            }
+        } else {
+            displayName = full;
+            // Try to split
+            const parts = full.split(" ").filter(Boolean);
+            if (parts.length > 1) {
+                firstName = parts[0];
+                lastName = parts.slice(1).join(" ");
+            } else {
+                firstName = full;
+            }
+        }
+    } else {
+        displayName = [firstName, lastName].filter(Boolean).join(" ");
+    }
+
+    let email = "";
+    if (colMap.email !== -1) email = cellToString(row.getCell(colMap.email).value);
+
+    let cmuAccount = "";
+    if (colMap.cmuAccount !== -1) cmuAccount = cellToString(row.getCell(colMap.cmuAccount).value);
+
+    // Use CMU Account as email if email is missing and account looks like email
+    if (!email && cmuAccount && cmuAccount.includes("@")) {
+        email = cmuAccount;
+    }
 
     readRows++;
 
     try {
-      // เดา it_account จาก email ถ้ามี
-      const cmuAccount =
-        email && email.includes("@")
-          ? email.split("@")[0]
-          : `stu_${studentCode}`;
-
       // ---------- upsert User ----------
-      const userRecord = await prisma.user.upsert({
-        where: studentCode
-          ? { studentCode } // ใช้ studentCode เป็น key หลัก
-          : { cmuEmail: email }, // fallback ถ้าไม่มีก็ใช้ email
-        update: {
-          cmuEmail: email || undefined,
-          // ✅ เก็บ displayName ตัวเดียว แต่ใส่ทั้ง Th/En ไว้ให้เหมือนกัน
-          displayNameTh: displayName || undefined,
-          displayNameEn: displayName || undefined,
-          studentCode: studentCode || undefined,
-        },
-        create: {
-          cmuAccount,
-          cmuEmail: email || `${studentCode}@example.com`,
-          studentCode,
-          displayNameTh: displayName || null,
-          displayNameEn: displayName || null,
-          isCmu: true,
-        },
+      // Logic:
+      // 1. Try to find user by studentCode
+      // 2. If found, update displayName (but keep their real cmuAccount/email if they have one)
+      // 3. If not found, create a PLACEHOLDER account
+      
+      const existingUser = await prisma.user.findUnique({
+          where: { studentCode: studentCode }
       });
+
+      let userId = "";
+
+      if (existingUser) {
+          userId = existingUser.id;
+          // Update display name if provided
+          // Also update email if it's a placeholder account and we have a real email now
+          const isPlaceholder = existingUser.cmuAccount.startsWith("ROSTER_");
+          
+          await prisma.user.update({
+              where: { id: userId },
+              data: {
+                  displayNameTh: displayName || undefined,
+                  displayNameEn: displayName || undefined,
+                  cmuEmail: (isPlaceholder && email) ? email : undefined,
+              }
+          });
+      } else {
+          // Create PLACEHOLDER
+          // We use a special prefix to indicate this is not a real login account yet (or just a placeholder)
+          // But since cmuAccount is unique, we need a unique string.
+          const placeholderAccount = `ROSTER_${studentCode}`;
+          // Use provided email if available, otherwise fallback to placeholder
+          const finalEmail = email || `ROSTER_${studentCode}@placeholder.local`;
+
+          const newUser = await prisma.user.create({
+              data: {
+                  studentCode,
+                  cmuAccount: placeholderAccount,
+                  cmuEmail: finalEmail,
+                  displayNameTh: displayName || null,
+                  displayNameEn: displayName || null,
+                  isCmu: true,
+              }
+          });
+          userId = newUser.id;
+      }
+      
+      // We need the user object for the next steps (Role assignment)
+      // Since we might have just the ID, let's just use the ID for relations.
+      // But wait, the code below uses userRecord.id.
+      
+      // Let's just return a minimal object or fetch it again if needed, 
+      // but actually we just need the ID for the next steps.
+      const userRecord = { id: userId };
 
       // ---------- Assign STUDENT Role ----------
       const studentRole = await prisma.role.upsert({
@@ -220,6 +384,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           studentCode,
           section: secLec || null,
           labSection: secLab || null,
+          importIndex: r, // Save row number as import index
         },
         create: {
           courseId: id,
@@ -227,6 +392,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           studentCode,
           section: secLec || null,
           labSection: secLab || null,
+          importIndex: r, // Save row number as import index
         },
       });
 

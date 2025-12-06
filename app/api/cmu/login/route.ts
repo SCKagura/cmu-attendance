@@ -126,26 +126,60 @@ export async function GET(req: NextRequest) {
         ? cmu.organization_name_en
         : undefined;
 
-    const user = await prisma.user.upsert({
+    // 1. Try to find by cmuAccount (Real account already exists)
+    let user = await prisma.user.findUnique({
       where: { cmuAccount },
-      update: {
-        cmuEmail: email ?? "",
-        studentCode,
-        displayNameTh,
-        displayNameEn,
-        organizationTh: orgTh,
-        organizationEn: orgEn,
-      },
-      create: {
-        cmuAccount,
-        cmuEmail: email ?? "",
-        studentCode,
-        displayNameTh,
-        displayNameEn,
-        organizationTh: orgTh,
-        organizationEn: orgEn,
-      },
     });
+
+    if (!user && studentCode) {
+      // 2. If not found by cmuAccount, try to find by studentCode (Placeholder exists?)
+      const existingByCode = await prisma.user.findUnique({
+        where: { studentCode },
+      });
+
+      if (existingByCode) {
+        // FOUND PLACEHOLDER! -> Claim it (Update to real cmuAccount)
+        user = await prisma.user.update({
+          where: { id: existingByCode.id },
+          data: {
+            cmuAccount, // Set real account
+            cmuEmail: email ?? "",
+            displayNameTh: displayNameTh || existingByCode.displayNameTh,
+            displayNameEn: displayNameEn || existingByCode.displayNameEn,
+            organizationTh: orgTh,
+            organizationEn: orgEn,
+          },
+        });
+      }
+    }
+
+    if (!user) {
+      // 3. Still not found -> Create new real account
+      user = await prisma.user.create({
+        data: {
+          cmuAccount,
+          cmuEmail: email ?? "",
+          studentCode,
+          displayNameTh,
+          displayNameEn,
+          organizationTh: orgTh,
+          organizationEn: orgEn,
+        },
+      });
+    } else {
+        // Ensure data is up to date if we found it by cmuAccount
+        if (user.cmuAccount === cmuAccount) {
+             await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    displayNameTh: displayNameTh || undefined,
+                    displayNameEn: displayNameEn || undefined,
+                    organizationTh: orgTh || undefined,
+                    organizationEn: orgEn || undefined,
+                }
+             });
+        }
+    }
 
     // user จริง: ให้ role STUDENT global ไว้ก่อน
     await ensureGlobalRole(user.id, RoleName.STUDENT);
