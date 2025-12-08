@@ -49,7 +49,15 @@ export default async function TASessionPage({ params }: Props) {
     const session = await prisma.classSession.findUnique({
         where: { id: sid },
         include: {
-            course: true,
+            course: {
+                select: {
+                    id: true,
+                    courseCode: true,
+                    courseNameTh: true,
+                    courseNameEn: true,
+                    activeSections: true,
+                }
+            },
         },
     });
 
@@ -57,9 +65,32 @@ export default async function TASessionPage({ params }: Props) {
         notFound();
     }
 
-    // Fetch all enrolled students
+    // Parse active sections for filtering
+    let activeSections: string[] = [];
+    if (session.course.activeSections) {
+        try {
+            activeSections = JSON.parse(session.course.activeSections);
+        } catch (e) {
+            console.error("Failed to parse activeSections:", e);
+        }
+    }
+
+    // Build filter for enrollments based on active sections
+    const enrollmentWhere: any = { courseId: cid };
+    if (activeSections.length > 0) {
+        const orConditions = activeSections.map(s => {
+            const [lec, lab] = s.split("|");
+            return {
+                section: lec,
+                labSection: (lab === "null" || lab === "" || lab === "0") ? null : lab
+            };
+        });
+        enrollmentWhere.OR = orConditions;
+    }
+
+    // Fetch all enrolled students (filtered by active sections)
     const enrollments = await prisma.enrollment.findMany({
-        where: { courseId: cid },
+        where: enrollmentWhere,
         include: {
             student: {
                 select: {
@@ -71,7 +102,7 @@ export default async function TASessionPage({ params }: Props) {
                 },
             },
         },
-        orderBy: { studentCode: "asc" },
+        orderBy: { importIndex: "asc" },
     });
 
     // Fetch attendance records for this session
@@ -82,6 +113,13 @@ export default async function TASessionPage({ params }: Props) {
             status: true,
             checkedAt: true,
             note: true,
+            scanner: {
+                select: {
+                    displayNameTh: true,
+                    displayNameEn: true,
+                    cmuAccount: true,
+                },
+            },
         },
     });
 
@@ -93,6 +131,9 @@ export default async function TASessionPage({ params }: Props) {
             e.student.displayNameTh ||
             e.student.displayNameEn ||
             e.student.cmuAccount,
+        section: e.section || "",
+        labSection: e.labSection || "",
+        importIndex: e.importIndex || 0,
     }));
 
     return (
