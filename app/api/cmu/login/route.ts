@@ -2,11 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCmuOneTimeToken } from "@/lib/cmuMobile";
 import { prisma } from "@/lib/db";
-import { signSessionToken, sessionCookieName } from "@/lib/auth";
-import { RoleName } from "@prisma/client";
+import { COOKIE } from "@/lib/auth";
 
 // helper: ให้ user มี role แบบ global (courseId = null)
-async function ensureGlobalRole(userId: string, roleName: RoleName) {
+async function ensureGlobalRole(userId: string, roleName: string) {
   const role = await prisma.role.upsert({
     where: { name: roleName },
     update: {},
@@ -64,15 +63,13 @@ export async function GET(req: NextRequest) {
       });
 
       // dev user: เป็นทั้ง STUDENT + TEACHER
-      await ensureGlobalRole(user.id, RoleName.STUDENT);
-      await ensureGlobalRole(user.id, RoleName.TEACHER);
-
-      const sessionJwt = signSessionToken({ userId: user.id });
+      await ensureGlobalRole(user.id, "STUDENT");
+      await ensureGlobalRole(user.id, "TEACHER");
 
       const res = NextResponse.redirect(new URL(redirectTo, req.url));
-      res.cookies.set(sessionCookieName, sessionJwt, {
+      res.cookies.set(COOKIE, user.id, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
@@ -182,14 +179,12 @@ export async function GET(req: NextRequest) {
     }
 
     // user จริง: ให้ role STUDENT global ไว้ก่อน
-    await ensureGlobalRole(user.id, RoleName.STUDENT);
-
-    const sessionJwt = signSessionToken({ userId: user.id });
+    await ensureGlobalRole(user.id, "STUDENT");
 
     const res = NextResponse.redirect(new URL(redirectTo, req.url));
-    res.cookies.set(sessionCookieName, sessionJwt, {
+    res.cookies.set(COOKIE, user.id, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
