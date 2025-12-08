@@ -39,28 +39,37 @@ export default function RosterTable({
 
   return (
     <div className="space-y-4">
-      {/* Search Bars */}
-      <div className="flex justify-end gap-2">
-        <div className="relative">
-            <input
-                type="text"
-                placeholder="Search No..."
-                value={searchNo}
-                onChange={(e) => setSearchNo(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors w-32"
-            />
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+        {/* Total Count */}
+        <div className="bg-white/5 px-6 py-3 rounded-xl border border-white/10 backdrop-blur-sm">
+            <span className="text-white/40 text-sm font-medium block mb-1">Total Students</span>
+            <span className="text-3xl font-bold text-white tracking-tight">{enrollments.length}</span>
         </div>
-        <div className="relative">
-            <input
-                type="text"
-                placeholder="Search ID, Name..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors w-64"
-            />
-            <svg className="w-5 h-5 text-white/40 absolute right-3 top-2.5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+
+        {/* Search Bars */}
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <div className="relative">
+                <input
+                    type="text"
+                    placeholder="Search No..."
+                    value={searchNo}
+                    onChange={(e) => setSearchNo(e.target.value)}
+                    className="w-full sm:w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors"
+                />
+            </div>
+            <div className="relative">
+                <input
+                    type="text"
+                    placeholder="Search ID, Name..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="w-full sm:w-64 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 transition-colors"
+                />
+                <svg className="w-5 h-5 text-white/40 absolute right-3 top-2.5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
         </div>
       </div>
 

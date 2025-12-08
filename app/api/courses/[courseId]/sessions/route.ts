@@ -48,6 +48,23 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     );
 
   const now = new Date();
+  
+  // Check for existing active session with the same keyword
+  const existingActiveSession = await prisma.classSession.findFirst({
+    where: {
+      courseId: id,
+      keyword: keyword,
+      expiresAt: { gt: now },
+    },
+  });
+
+  if (existingActiveSession) {
+    return NextResponse.json(
+      { error: `Keyword "${keyword}" is currently active in another session. Please wait for it to expire or use a different keyword.` },
+      { status: 400 }
+    );
+  }
+
   const d = date ? new Date(date) : now;
   const st = startTime ? new Date(startTime) : now;
   const et = endTime

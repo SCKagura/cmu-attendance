@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { CourseRosterUpload } from "@/app/teacher/CourseRosterUpload";
+import { ManualEnrollStudent } from "@/app/teacher/ManualEnrollStudent";
 import RosterTable from "../_components/RosterTable";
 import Link from "next/link";
 
@@ -124,8 +125,13 @@ export default async function RosterPage({
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-6 border border-white/20">
-          {canManage && <CourseRosterUpload courseId={id} />}
-          <div className="mt-6">
+          {canManage && (
+            <div className="flex gap-2 mb-6">
+              <CourseRosterUpload courseId={id} />
+              <ManualEnrollStudent courseId={id} />
+            </div>
+          )}
+          <div className={canManage ? "" : "mt-6"}>
             <RosterTable enrollments={enrollments} />
           </div>
         </div>

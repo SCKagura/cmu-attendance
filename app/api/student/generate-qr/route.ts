@@ -58,18 +58,19 @@ export async function POST(req: NextRequest) {
 
   // Check if session is expired
   // Check if session is expired
-  // if (session.expiresAt && new Date() > session.expiresAt) {
-  //   return NextResponse.json(
-  //     { error: "This session has expired" },
-  //     { status: 400 }
-  //   );
-  // }
+  if (session.expiresAt && new Date() > session.expiresAt) {
+    return NextResponse.json(
+      { error: "This session has expired" },
+      { status: 400 }
+    );
+  }
 
   // Generate QR token
   const qrToken = buildToken(
     enrollment.studentCode,
     cid,
-    session.keyword
+    session.keyword,
+    session.id // Add session.id for unique token
   );
 
   return NextResponse.json({

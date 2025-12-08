@@ -12,10 +12,22 @@ export async function GET(req: NextRequest) {
     const redirect = url.searchParams.get("redirect") ?? "/";
     const shouldClear = url.searchParams.get("clear") === "true";
 
+    const studentCode = account === "student1" ? "000000000" : null;
+    
+    // Only update studentCode if it's currently null or if we're setting it for student1
+    const updateData: any = { cmuEmail: email };
+    if (studentCode) {
+        updateData.studentCode = studentCode;
+    }
+
     const user = await prisma.user.upsert({
       where: { cmuAccount: account },
-      update: { cmuEmail: email },
-      create: { cmuAccount: account, cmuEmail: email },
+      update: updateData,
+      create: { 
+          cmuAccount: account, 
+          cmuEmail: email,
+          studentCode: studentCode
+      },
       select: { id: true },
     });
 

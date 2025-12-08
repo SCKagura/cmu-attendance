@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { CreateUserForm } from "./_components/CreateUserForm";
 
 type User = {
   id: string;
@@ -197,9 +198,10 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-white mb-2">
             Admin Panel
           </h1>
-          <p className="text-white/70">
+          <p className="text-white/70 mb-4">
             Manage users and assign global roles
           </p>
+          <CreateUserForm onSuccess={fetchUsers} />
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 mb-6">

@@ -15,11 +15,19 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const cid = Number(courseId);
-  const { studentCode, firstName, lastName, email, cmuAccount } = await req.json();
+  const { studentCode, section, labSection } = await req.json();
 
-  if (!studentCode || !email) {
+  if (!studentCode) {
     return NextResponse.json(
-      { error: "Missing required fields" },
+      { error: "Student code is required" },
+      { status: 400 }
+    );
+  }
+
+  // Validate student code format (9 digits)
+  if (!/^\d{9}$/.test(studentCode)) {
+    return NextResponse.json(
+      { error: "Student code must be 9 digits" },
       { status: 400 }
     );
   }
@@ -35,11 +43,6 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const isOwner = course.ownerId === user.id;
-  const isTeacher = course.userRoles.some(
-    (ur) => ur.userId === user.id && ur.roleId // Simplified check, ideally check role name
-  );
-  // We need to check role name properly, but let's trust the user is authorized if they can reach here via UI which checks permissions.
-  // Better:
   const hasPermission = isOwner || await prisma.userRole.findFirst({
     where: {
       userId: user.id,
@@ -52,25 +55,26 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
-  const displayName = [firstName, lastName].filter(Boolean).join(" ");
-
-  // Upsert User
-  const userRecord = await prisma.user.upsert({
-    where: { cmuAccount: cmuAccount || email.split("@")[0] },
-    update: {
-        studentCode,
-        displayNameTh: displayName,
-        displayNameEn: displayName,
-    },
-    create: {
-      cmuAccount: cmuAccount || email.split("@")[0],
-      cmuEmail: email,
-      studentCode,
-      displayNameTh: displayName,
-      displayNameEn: displayName,
-      isCmu: true,
-    },
+  // Calculate next importIndex
+  const maxEnrollment = await prisma.enrollment.findFirst({
+    where: { courseId: cid },
+    orderBy: { importIndex: "desc" },
+    select: { importIndex: true },
   });
+
+  const nextImportIndex = (maxEnrollment?.importIndex ?? 0) + 1;
+
+  // Find user by studentCode
+  const userRecord = await prisma.user.findUnique({
+    where: { studentCode },
+  });
+
+  if (!userRecord) {
+    return NextResponse.json(
+      { error: "Student not found in system" },
+      { status: 404 }
+    );
+  }
 
   // Assign STUDENT Role
   const studentRole = await prisma.role.upsert({
@@ -98,6 +102,15 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   // Upsert Enrollment
+  console.log("Creating enrollment for:", {
+    courseId: cid,
+    studentId: userRecord.id,
+    studentCode,
+    section,
+    labSection,
+    nextImportIndex,
+  });
+
   const enrollment = await prisma.enrollment.upsert({
     where: {
       courseId_studentId: {
@@ -107,13 +120,20 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     },
     update: {
       studentCode,
+      section: section || null,
+      labSection: labSection || null,
     },
     create: {
       courseId: cid,
       studentId: userRecord.id,
       studentCode,
+      section: section || null,
+      labSection: labSection || null,
+      importIndex: nextImportIndex,
     },
   });
+
+  console.log("Enrollment created/updated:", enrollment);
 
   return NextResponse.json({ ok: true, enrollment });
 }

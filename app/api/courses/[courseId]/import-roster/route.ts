@@ -208,6 +208,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   let readRows = 0;
   let importedRows = 0;
   const errors: string[] = [];
+  const processedStudentCodes = new Set<string>();
 
   // ---------- loop ทีละแถวในตารางนักศึกษา ----------
   for (let r = dataStartRow; r <= sheet.rowCount; r++) {
@@ -430,10 +431,59 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       });
 
       importedRows++;
+      
+      // Track processed student codes for sync
+      processedStudentCodes.add(studentCode);
     } catch (err) {
       console.error(`Error importing row ${r}:`, err);
       errors.push(`Row ${r} (${studentCode}): ${err}`);
     }
+  }
+
+  // ---------- SYNC LOGIC: Remove students not in Excel ----------
+  if (action === "import") {
+      try {
+          const processedCodesArray = Array.from(processedStudentCodes);
+          
+          const deleteWhere: any = {
+              courseId: id,
+              studentCode: {
+                  notIn: processedCodesArray
+              }
+          };
+
+          // If filtering by section, only remove missing students from those sections
+          if (selectedSections && selectedSections.length > 0) {
+              // Extract secLec and secLab from "Lec|Lab" strings
+              // This is a bit complex due to "OR" logic for multiple sections
+              // Simpler approach: If syncing specific sections, we iterate and delete matchers
+              
+              // However, Prisma doesn't support complex OR in deleteMany easily with related fields mixed
+              // So we might need to find them first then delete, or make a generalized assumption.
+              
+              // Let's rely on the fact that if a student is NOT in the processed list, 
+              // AND they are currently enrolled in one of the selected sections, they should be removed.
+              
+              // Construct OR conditions for each selected section
+              const sectionConditions = selectedSections.map(s => {
+                  const [lec, lab] = s.split("|");
+                  return {
+                      section: lec === "0" || lec === "" ? null : lec,
+                      labSection: lab === "0" || lab === "" ? null : lab
+                  };
+              });
+
+              deleteWhere.OR = sectionConditions;
+          }
+
+          const deleted = await prisma.enrollment.deleteMany({
+              where: deleteWhere
+          });
+
+          console.log(`Synced Roster: Deleted ${deleted.count} students not in import list`);
+      } catch (e) {
+          console.error("Error syncing roster:", e);
+      }
   }
 
   if (action === "analyze") {

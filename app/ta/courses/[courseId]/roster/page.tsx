@@ -27,6 +27,7 @@ export default async function TARosterPage({
             courseNameEn: true,
             academicYear: true,
             semester: true,
+            activeSections: true,
             userRoles: {
                 where: { userId: user.id },
                 include: { role: true },
@@ -41,8 +42,36 @@ export default async function TARosterPage({
         return <div className="p-6 text-red-400">Access Denied</div>;
     }
 
+    // Filter by active sections if set
+    let activeSections: string[] | null = null;
+    if (course.activeSections) {
+        try {
+            activeSections = JSON.parse(course.activeSections);
+        } catch (e) {
+            console.error("Failed to parse activeSections", e);
+        }
+    }
+
+    const enrollmentWhere: any = { courseId: id };
+    
+    // Logic: If activeSections is defined, only show students in those sections 
+    // OR students with no section (optional decision, usually we hide them if filtering is active, 
+    // but based on previous teacher logic, let's strictly follow the section filter)
+    if (activeSections && activeSections.length > 0) {
+        // activeSections are in format "Lec|Lab"
+        // We need to construct OR condition
+        const orConditions = activeSections.map((secKey: string) => {
+            const [lec, lab] = secKey.split("|");
+            return {
+                section: lec === "0" ? null : lec,
+                labSection: lab === "0" ? null : lab,
+            };
+        });
+        enrollmentWhere.OR = orConditions;
+    }
+
     const enrollments = await prisma.enrollment.findMany({
-        where: { courseId: id },
+        where: enrollmentWhere,
         include: {
             student: {
                 select: {
@@ -50,10 +79,11 @@ export default async function TARosterPage({
                     displayNameTh: true,
                     displayNameEn: true,
                     cmuAccount: true,
+                    cmuEmail: true,
                 },
             },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { importIndex: "asc" }, // Should order by importIndex like teacher view
     });
 
     

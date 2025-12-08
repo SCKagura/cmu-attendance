@@ -184,30 +184,41 @@ export default function SessionDetailClient({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-emerald-500/10 backdrop-blur-lg rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold text-emerald-400">
-                            {stats.present}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Total - Left Column */}
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20 flex flex-col items-center justify-center h-full min-h-[140px]">
+                        <span className="text-5xl font-bold text-white mb-2">
+                            {stats.total}
                         </span>
-                        <span className="text-emerald-200/60 text-sm">Present</span>
+                        <span className="text-white/60 text-lg">Total Students</span>
                     </div>
-                    <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-4 border border-red-500/20 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold text-red-400">
-                            {stats.absent}
-                        </span>
-                        <span className="text-red-200/60 text-sm">Absent</span>
-                    </div>
-                    <div className="bg-yellow-500/10 backdrop-blur-lg rounded-2xl p-4 border border-yellow-500/20 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold text-yellow-400">
-                            {stats.late}
-                        </span>
-                        <span className="text-yellow-200/60 text-sm">Late</span>
-                    </div>
-                    <div className="bg-blue-500/10 backdrop-blur-lg rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold text-blue-400">
-                            {stats.leave}
-                        </span>
-                        <span className="text-blue-200/60 text-sm">Leave</span>
+
+                    {/* Statuses - Right 2x2 Grid */}
+                    <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <div className="bg-emerald-500/10 backdrop-blur-lg rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold text-emerald-400">
+                                {stats.present}
+                            </span>
+                            <span className="text-emerald-200/60 text-sm">Present</span>
+                        </div>
+                        <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-4 border border-red-500/20 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold text-red-400">
+                                {stats.absent}
+                            </span>
+                            <span className="text-red-200/60 text-sm">Absent</span>
+                        </div>
+                        <div className="bg-yellow-500/10 backdrop-blur-lg rounded-2xl p-4 border border-yellow-500/20 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold text-yellow-400">
+                                {stats.late}
+                            </span>
+                            <span className="text-yellow-200/60 text-sm">Late</span>
+                        </div>
+                        <div className="bg-blue-500/10 backdrop-blur-lg rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold text-blue-400">
+                                {stats.leave}
+                            </span>
+                            <span className="text-blue-200/60 text-sm">Leave</span>
+                        </div>
                     </div>
                 </div>
             </div>
