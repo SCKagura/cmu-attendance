@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import QRCodeDisplay from "@/app/_components/QRCodeDisplay";
 
-export default function GenerateQRPage() {
+function GenerateQRContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
@@ -147,5 +147,13 @@ export default function GenerateQRPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GenerateQRPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center"><div className="text-white text-xl">Loading...</div></div>}>
+      <GenerateQRContent />
+    </Suspense>
   );
 }
