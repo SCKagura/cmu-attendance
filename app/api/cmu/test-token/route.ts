@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
 
         // Get unique global roles (where courseId is null)
         const globalRoles = user.roles
-          .filter((ur) => ur.courseId === null)
-          .map((ur) => ur.role.name);
+          .filter((ur: { courseId: number | null }) => ur.courseId === null)
+          .map((ur: { role: { name: string } }) => ur.role.name);
         
         userRoles = [...new Set(globalRoles)] as string[];
       }

@@ -179,7 +179,7 @@ export async function DELETE(req: NextRequest) {
         select: { userId: true },
       });
 
-      const studentUserIds = studentUserRoles.map((ur) => ur.userId);
+      const studentUserIds = studentUserRoles.map((ur: { userId: string }) => ur.userId);
 
       // Delete all students (cascade will handle related data)
       const deleteResult = await prisma.user.deleteMany({
@@ -200,4 +200,56 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(req: NextRequest) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check if user is admin
+  const isAdmin = await prisma.userRole.findFirst({
+    where: {
+      userId: user.id,
+      role: { name: "ADMIN" },
+      courseId: null,
+    },
+  });
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { userId, studentCode } = await req.json();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  }
+
+  // Check if student code is already taken by another user
+  if (studentCode && studentCode.trim()) {
+    const existing = await prisma.user.findFirst({
+      where: {
+        studentCode: studentCode.trim(),
+        NOT: { id: userId },
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Student code already exists" },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Update user's student code
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { studentCode: studentCode?.trim() || null },
+  });
+
+  return NextResponse.json({ ok: true, user: updatedUser });
 }

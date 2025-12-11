@@ -29,7 +29,7 @@ export default async function TeacherPage() {
   const isTeacher = await prisma.userRole.findFirst({
     where: {
       userId: user.id,
-      role: { name: { in: ["TEACHER", "CO_TEACHER"] } },
+      role: { name: { in: ["TEACHER", "CO_TEACHER", "ADMIN"] } },
     },
   });
 

@@ -93,6 +93,9 @@ export default async function SessionPage({ params }: Props) {
             status: true,
             note: true,
             checkedAt: true,
+            payloadRaw: true,
+            ip: true,
+            deviceInfo: true,
             scanner: {
                 select: {
                     displayNameTh: true,

@@ -4,10 +4,21 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const token = searchParams.token;
+
+  // If token is present, redirect to CMU login API
+  // This handles the flow where users scan QR code or click link -> root url -> login api
+  if (typeof token === "string" && token) {
+    redirect(`/api/cmu/login?token=${token}&redirect=/`);
+  }
+
   const user = await getCurrentUser();
 
-  // If not logged in, redirect to student page (which has login options)
+  // If not logged in, redirect to student page
   if (!user) {
     redirect("/student");
   }

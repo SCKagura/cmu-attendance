@@ -35,6 +35,10 @@ export async function logTokenFromHeaders() {
     console.log(`✅ Token logged: ${token.substring(0, 10)}... | Device: ${device || "N/A"}`);
 
     // Try to verify token and log the result
+    /* 
+    NOTE: Commented out because verifying consumes the ONE-TIME token!
+    This checks causes the actual login to fail.
+    
     try {
       const cmuData = await verifyCmuOneTimeToken(token);
       console.log("✅ CMU Token Verification SUCCESS:");
@@ -47,7 +51,8 @@ export async function logTokenFromHeaders() {
       console.log("   Organization:", cmuData.organization_name_th);
     } catch (verifyError) {
       console.error("❌ CMU Token Verification FAILED:", verifyError instanceof Error ? verifyError.message : String(verifyError));
-    }
+    } 
+    */
   } catch (error) {
     console.error("Failed to log token:", error);
   }

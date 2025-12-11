@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("STUDENT");
+  const [editingStudentCode, setEditingStudentCode] = useState<{userId: string, code: string} | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -110,6 +111,31 @@ export default function AdminPage() {
       } else {
         const data = await res.json();
         alert(data.error || "Failed to remove role");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unknown error");
+    }
+  }
+
+  async function handleUpdateStudentCode() {
+    if (!editingStudentCode) return;
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: editingStudentCode.userId,
+          studentCode: editingStudentCode.code.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        fetchUsers();
+        setEditingStudentCode(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to update student code");
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Unknown error");
@@ -289,7 +315,40 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{user.cmuEmail}</td>
                     <td className="px-4 py-3 font-mono text-sm">
-                      {user.studentCode || "-"}
+                      {editingStudentCode?.userId === user.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingStudentCode.code}
+                            onChange={(e) => setEditingStudentCode({...editingStudentCode, code: e.target.value})}
+                            className="px-2 py-1 bg-white/20 border border-white/30 rounded text-white text-sm"
+                            placeholder="Student Code"
+                          />
+                          <button
+                            onClick={handleUpdateStudentCode}
+                            className="px-2 py-1 bg-green-500 hover:bg-green-600 rounded text-xs"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditingStudentCode(null)}
+                            className="px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>{user.studentCode || "-"}</span>
+                          <button
+                            onClick={() => setEditingStudentCode({userId: user.id, code: user.studentCode || ""})}
+                            className="text-blue-400 hover:text-blue-300 text-xs"
+                            title="Edit Student Code"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">

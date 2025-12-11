@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Checkin Webhook</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            background: #2a2a2a;
+            color: #0f0;
+            border: 1px solid #444;
+            font-family: monospace;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Checkin Webhook</h1>
+    <p>URL: <code>https://unfastenable-consumedly-tiffanie.ngrok-free.dev/api/checkin</code></p>
+    
+    <h3>Sample Payload (Edit as needed):</h3>
+    <textarea id="payload">{
+  "qr": "{\"code\":\"650610757\",\"hash\":\"abc123...\",\"courseId\":3,\"sessionId\":1}",
+  "it_account": "yannavut_yunvisate",
+  "email": "yannavut_yunvisate@cmu.ac.th",
+  "student_id": "650610757"
+}</textarea>
+
+    <button onclick="testWebhook()">🚀 Send Test Request</button>
+
+    <h3>Response:</h3>
+    <div id="result">Click "Send Test Request" to test...</div>
+
+    <script>
+        async function testWebhook() {
+            const payload = document.getElementById('payload').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                resultDiv.textContent = 'Sending request...';
+                
+                const response = await fetch('https://unfastenable-consumedly-tiffanie.ngrok-free.dev/api/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: payload
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.textContent = `Status: ${response.status}\n\n` + JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    resultDiv.style.borderColor = '#4CAF50';
+                } else {
+                    resultDiv.style.borderColor = '#f44336';
+                }
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+                resultDiv.style.borderColor = '#f44336';
+            }
+        }
+    </script>
+</body>
+</html>

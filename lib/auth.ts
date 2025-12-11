@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 
-export const COOKIE = "cmu_user_id";
+export const COOKIE = "cmu_attendance_session_v2";
 
 export async function getCurrentUser() {
   const store = await cookies();

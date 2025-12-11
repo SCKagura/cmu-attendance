@@ -66,12 +66,23 @@ export async function POST(req: NextRequest) {
   }
 
   // Generate QR token
-  const qrToken = buildToken(
+  const tokenHash = buildToken(
     enrollment.studentCode,
     cid,
     session.keyword,
-    session.id // Add session.id for unique token
+    session.id
   );
+
+  // Generate QR token in CMU Mobile format
+  // Format: engqr:reference *reference <webhook_url> <json_data>
+  const qrData = JSON.stringify({
+    code: enrollment.studentCode,
+    hash: tokenHash,
+    courseId: cid,
+    sessionId: session.id
+  });
+  
+  const qrToken = `engqr:reference *reference https://unfastenable-consumedly-tiffanie.ngrok-free.dev/api/checkin ${qrData}`;
 
   return NextResponse.json({
     ok: true,

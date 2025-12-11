@@ -390,6 +390,32 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
           });
       }
 
+      // ---------- Assign STUDENT role ----------
+      // Check if user already has STUDENT role
+      const studentRole = await prisma.role.findUnique({
+        where: { name: "STUDENT" }
+      });
+
+      if (studentRole) {
+        const existingStudentRole = await prisma.userRole.findFirst({
+          where: {
+            userId: userRecord.id,
+            roleId: studentRole.id,
+            courseId: null // Global role
+          }
+        });
+
+        if (!existingStudentRole) {
+          await prisma.userRole.create({
+            data: {
+              userId: userRecord.id,
+              roleId: studentRole.id,
+              courseId: null
+            }
+          });
+        }
+      }
+
       // Read "No." from the mapped NO column
       // For Format 1 & 2: Column A starting from row 8
       // For Format 3: Column A starting from row 5

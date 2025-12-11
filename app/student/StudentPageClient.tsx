@@ -134,7 +134,22 @@ export default function StudentPageClient({ user, enrollments }: Props) {
               <li>สแกน QR Code หรือคลิกลิงก์จากระบบ</li>
               <li>ระบบจะดึงข้อมูลของคุณจาก CMU Mobile อัตโนมัติ</li>
             </ol>
+
           </div>
+
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <a
+                href="/api/cmu/login?token=dev-student&redirect=/student"
+                className="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
+              >
+                🛠️ Developer Login (Skip CMU)
+              </a>
+              <p className="text-white/40 text-xs mt-2">
+                Visible only in development mode
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );

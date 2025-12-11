@@ -62,19 +62,26 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      // dev user: เป็นทั้ง STUDENT + TEACHER
+      // dev user: เป็นทั้ง STUDENT + TEACHER + ADMIN
       await ensureGlobalRole(user.id, "STUDENT");
       await ensureGlobalRole(user.id, "TEACHER");
+      await ensureGlobalRole(user.id, "ADMIN");
+
+      const isSecure = process.env.NODE_ENV === "production" || req.headers.get("x-forwarded-proto") === "https";
 
       (await cookies()).set(COOKIE, user.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isSecure,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
       });
 
-      return NextResponse.redirect(new URL(redirectTo, req.url));
+      const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+      const proto = req.headers.get("x-forwarded-proto") || "http";
+      const absoluteRedirectUrl = `${proto}://${host}${redirectTo}`;
+
+      return NextResponse.redirect(absoluteRedirectUrl);
     }
     // ---------- END DEV SHORTCUT ----------
 
@@ -94,8 +101,17 @@ export async function GET(req: NextRequest) {
 
     const cmu = (await verifyCmuOneTimeToken(token)) as CmuResponse;
 
+    if (!cmu) {
+        console.error("❌ CMU Token Verification FAILED: API returned null (Token expired or used?)");
+        return NextResponse.json(
+            { error: "Token verification failed (expired or invalid)" },
+            { status: 400 }
+        );
+    }
+
     const cmuAccount = cmu.it_account;
     if (!cmuAccount) {
+        console.error("❌ CMU Token Verification FAILED: No IT Account in response", cmu);
       return NextResponse.json(
         { error: "CMU response missing it_account" },
         { status: 500 }
@@ -191,7 +207,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Create response object first
-    const response = NextResponse.redirect(new URL("/student", req.url));
+    // Construct absolute URL using headers to ensure it works behind ngrok/proxy
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") || "http";
+    const absoluteRedirectUrl = `${proto}://${host}${redirectTo}`;
+    
+    // Use the absolute URL for redirect
+    const response = NextResponse.redirect(absoluteRedirectUrl);
 
     // 1. Force delete with all possible variations that might exist
     response.cookies.delete(COOKIE);
@@ -203,11 +225,13 @@ export async function GET(req: NextRequest) {
         studentCode: user.studentCode
     });
 
+    // Check if running on SSL (including behind proxy like ngrok)
+    const isSecure = process.env.NODE_ENV === "production" || req.headers.get("x-forwarded-proto") === "https";
+
     // 2. Set new cookie
     response.cookies.set(COOKIE, user.id, {
         httpOnly: true,
-        // Force secure false on dev to ensure it overwrites/sets correctly on localhost
-        secure: process.env.NODE_ENV === "production", 
+        secure: isSecure, 
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 days

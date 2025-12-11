@@ -17,6 +17,9 @@ type AttendanceRecord = {
     status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
     note?: string | null;
     checkedAt: Date;
+    payloadRaw?: string | null;
+    ip?: string | null;
+    deviceInfo?: string | null;
     scanner: {
         displayNameTh: string | null;
         displayNameEn: string | null;
@@ -52,6 +55,7 @@ export default function SessionDetailClient({
     const [filter, setFilter] = useState<"ALL" | "PRESENT" | "ABSENT" | "LATE" | "LEAVE">("ALL");
     const [search, setSearch] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const [selectedAttendance, setSelectedAttendance] = useState<any>(null);
 
     // Map attendance by studentId
@@ -70,6 +74,9 @@ export default function SessionDetailClient({
                 status: att ? att.status : "ABSENT",
                 checkedAt: att ? att.checkedAt : null,
                 scanner: att ? att.scanner : null,
+                payloadRaw: att?.payloadRaw,
+                ip: att?.ip,
+                deviceInfo: att?.deviceInfo,
                 note: att?.note || null,
             };
         });
@@ -126,6 +133,12 @@ export default function SessionDetailClient({
         if (readOnly) return;
         setSelectedAttendance(row);
         setIsEditModalOpen(true);
+    };
+
+    const openLogModal = (row: any) => {
+        if (!row.checkedAt) return; // Only if attended
+        setSelectedAttendance(row);
+        setIsLogModalOpen(true);
     };
 
     return (
@@ -277,6 +290,7 @@ export default function SessionDetailClient({
                                 <th className="px-6 py-4 text-left font-medium">Student ID</th>
                                 <th className="px-6 py-4 text-left font-medium">Name</th>
                                 <th className="px-6 py-4 text-center font-medium">Status</th>
+                                <th className="px-6 py-4 text-left font-medium">Scanner</th>
                                 <th className="px-6 py-4 text-left font-medium">Note</th>
                                 <th className="px-6 py-4 text-left font-medium">Time</th>
                             </tr>
@@ -325,6 +339,26 @@ export default function SessionDetailClient({
                                                 {row.status}
                                             </button>
                                         )}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-white/80">
+                                        <div className="flex items-center gap-2">
+                                            <span>
+                                                {row.scanner
+                                                    ? row.scanner.displayNameTh ||
+                                                      row.scanner.displayNameEn ||
+                                                      row.scanner.cmuAccount
+                                                    : "-"}
+                                            </span>
+                                            {row.scanner && (
+                                                <button
+                                                    onClick={() => openLogModal(row)}
+                                                    className="text-blue-400 hover:text-blue-300"
+                                                    title="View Scan Log"
+                                                >
+                                                    ℹ️
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 text-sm text-white/80 max-w-[200px] truncate" title={row.note || ""}>
                                         {row.note || "-"}
@@ -411,6 +445,74 @@ export default function SessionDetailClient({
                                     Save Note Only
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Log Modal */}
+            {isLogModalOpen && selectedAttendance && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-2xl border border-white/10 shadow-2xl relative">
+                        <button
+                            onClick={() => setIsLogModalOpen(false)}
+                            className="absolute top-4 right-4 text-white/50 hover:text-white"
+                        >
+                            ✕
+                        </button>
+                        <h3 className="text-xl font-bold text-white mb-4">
+                            Scan Audit Log: {selectedAttendance.name}
+                        </h3>
+
+                        <div className="space-y-4 text-sm font-mono">
+                            <div className="bg-black/40 p-4 rounded-lg border border-white/5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <span className="text-white/40 block">Scanner Name</span>
+                                        <span className="text-white font-medium">
+                                            {selectedAttendance.scanner?.displayNameTh || selectedAttendance.scanner?.cmuAccount}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-white/40 block">Timestamp</span>
+                                        <span className="text-white font-medium">
+                                            {new Date(selectedAttendance.checkedAt).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-white/40 block">IP Address</span>
+                                        <span className="text-emerald-400">
+                                            {selectedAttendance.ip || "Unknown"}
+                                        </span>
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <span className="text-white/40 block">Device / App</span>
+                                        <span className="text-white/80 truncate block" title={selectedAttendance.deviceInfo || ""}>
+                                            {selectedAttendance.deviceInfo || "Unknown"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span className="text-white/40 block mb-2">Raw Payload Data</span>
+                                <div className="bg-black p-4 rounded-lg border border-green-900/30 text-green-400 overflow-auto max-h-60">
+                                    <pre className="whitespace-pre-wrap break-all">
+                                        {selectedAttendance.payloadRaw
+                                            ? JSON.stringify(JSON.parse(selectedAttendance.payloadRaw), null, 2)
+                                            : "No payload data"}
+                                    </pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                onClick={() => setIsLogModalOpen(false)}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                            >
+                                Close Log
+                            </button>
                         </div>
                     </div>
                 </div>
