@@ -7,6 +7,10 @@ export interface CmuVerifyResult {
   it_account?: string;
   it_account_type?: string;
   picture?: string;
+  firstname_th?: string;
+  firstname_en?: string;
+  lastname_th?: string;
+  lastname_en?: string;
   organization_name_th?: string;
   organization_name_en?: string;
   // เผื่อมีฟิลด์อื่น ๆ เพิ่มเติม
@@ -31,13 +35,14 @@ export async function verifyCmuOneTimeToken(
     headers: {
       Authorization: `Bearer ${clientToken}`,
     },
-    // CMU API น่าจะเป็น HTTPS อยู่แล้ว
   });
 
   if (!res.ok) {
     throw new Error(`CMU verify failed with status ${res.status}`);
   }
 
-  const data = (await res.json()) as CmuVerifyResult;
-  return data;
+  const response = (await res.json()) as { success: boolean; data: CmuVerifyResult };
+  
+  // CMU API wraps data in { success: true, data: {...} }
+  return response.data;
 }

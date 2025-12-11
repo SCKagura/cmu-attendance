@@ -139,3 +139,14 @@ model AuditLog {
   meta      String?
   createdAt DateTime @default(now())
 }
+
+model TokenLog {
+  id        Int      @id @default(autoincrement())
+  token     String
+  device    String?
+  url       String
+  ip        String?
+  userAgent String?
+  referer   String?
+  createdAt DateTime @default(now())
+}

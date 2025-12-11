@@ -1,12 +1,11 @@
-// app/api/cmu/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCmuOneTimeToken } from "@/lib/cmuMobile";
 import { prisma } from "@/lib/db";
-import { signSessionToken, sessionCookieName } from "@/lib/auth";
-import { RoleName } from "@prisma/client";
+import { COOKIE } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 // helper: ให้ user มี role แบบ global (courseId = null)
-async function ensureGlobalRole(userId: string, roleName: RoleName) {
+async function ensureGlobalRole(userId: string, roleName: string) {
   const role = await prisma.role.upsert({
     where: { name: roleName },
     update: {},
@@ -64,21 +63,18 @@ export async function GET(req: NextRequest) {
       });
 
       // dev user: เป็นทั้ง STUDENT + TEACHER
-      await ensureGlobalRole(user.id, RoleName.STUDENT);
-      await ensureGlobalRole(user.id, RoleName.TEACHER);
+      await ensureGlobalRole(user.id, "STUDENT");
+      await ensureGlobalRole(user.id, "TEACHER");
 
-      const sessionJwt = signSessionToken({ userId: user.id });
-
-      const res = NextResponse.redirect(new URL(redirectTo, req.url));
-      res.cookies.set(sessionCookieName, sessionJwt, {
+      (await cookies()).set(COOKIE, user.id, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
       });
 
-      return res;
+      return NextResponse.redirect(new URL(redirectTo, req.url));
     }
     // ---------- END DEV SHORTCUT ----------
 
@@ -90,6 +86,8 @@ export async function GET(req: NextRequest) {
       name?: string;
       firstname_th?: string;
       firstname_en?: string;
+      lastname_th?: string;
+      lastname_en?: string;
       organization_name_th?: string;
       organization_name_en?: string;
     }
@@ -107,15 +105,14 @@ export async function GET(req: NextRequest) {
     const email = cmu.email;
     const studentCode = cmu.student_id ?? null;
 
-    const displayNameTh =
-      typeof cmu.name === "string"
-        ? cmu.name
-        : typeof cmu.firstname_th === "string"
-        ? cmu.firstname_th
-        : undefined;
+    // Build full name from firstname + lastname
+    const displayNameTh = cmu.firstname_th && cmu.lastname_th
+      ? `${cmu.firstname_th} ${cmu.lastname_th}`
+      : cmu.name || cmu.firstname_th || undefined;
 
-    const displayNameEn =
-      typeof cmu.firstname_en === "string" ? cmu.firstname_en : undefined;
+    const displayNameEn = cmu.firstname_en && cmu.lastname_en
+      ? `${cmu.firstname_en} ${cmu.lastname_en}`
+      : cmu.firstname_en || undefined;
 
     const orgTh =
       typeof cmu.organization_name_th === "string"
@@ -181,21 +178,42 @@ export async function GET(req: NextRequest) {
         }
     }
 
-    // user จริง: ให้ role STUDENT global ไว้ก่อน
-    await ensureGlobalRole(user.id, RoleName.STUDENT);
+    // Auto-assign role based on student_id
+    // If has student_id = STUDENT, else = TEACHER
+    // Auto-assign role based on student_id
+    // If has student_id = STUDENT, else = TEACHER
+    if (studentCode) {
+      // มีรหัสนักศึกษา = เป็น Student
+      await ensureGlobalRole(user.id, "STUDENT");
+    } else {
+      // ไม่มีรหัสนักศึกษา = เป็น Teacher
+      await ensureGlobalRole(user.id, "TEACHER");
+    }
 
-    const sessionJwt = signSessionToken({ userId: user.id });
+    // Create response object first
+    const response = NextResponse.redirect(new URL("/student", req.url));
 
-    const res = NextResponse.redirect(new URL(redirectTo, req.url));
-    res.cookies.set(sessionCookieName, sessionJwt, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+    // 1. Force delete with all possible variations that might exist
+    response.cookies.delete(COOKIE);
+    response.cookies.set(COOKIE, "", { maxAge: 0, path: "/" }); 
+
+    console.log("✅ Setting CMU Login Cookie (Direct Response):", {
+        id: user.id,
+        cmuAccount: user.cmuAccount,
+        studentCode: user.studentCode
     });
 
-    return res;
+    // 2. Set new cookie
+    response.cookies.set(COOKIE, user.id, {
+        httpOnly: true,
+        // Force secure false on dev to ensure it overwrites/sets correctly on localhost
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
   } catch (e: unknown) {
     console.error("CMU login error:", e);
     const detail = e instanceof Error ? e.message : String(e);
