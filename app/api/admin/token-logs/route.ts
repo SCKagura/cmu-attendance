@@ -1,6 +1,7 @@
 // app/api/admin/token-logs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin, PermissionError } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -12,19 +13,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if user is admin
-    const adminRole = await prisma.userRole.findFirst({
-      where: {
-        userId: user.id,
-        courseId: null,
-        role: {
-          name: "ADMIN",
-        },
-      },
-    });
-
-    if (!adminRole) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    await requireAdmin(user.id);
 
     // Get pagination parameters
     const { searchParams } = new URL(req.url);
@@ -52,6 +41,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const permError = error as PermissionError;
+      return NextResponse.json(permError, { status: 403 });
+    }
     console.error("Error fetching token logs:", error);
     return NextResponse.json(
       { error: "Failed to fetch token logs" },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { hasCourseAccess } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,27 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   }
 
   const id = Number(courseId);
+  
+  // Check if user has access to this course (owner, TA, or teacher)
+  const hasAccess = await hasCourseAccess(user.id, id);
+  
+  if (!hasAccess) {
+    // Also check if user is enrolled as student
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { courseId: id, studentId: user.id },
+    });
+    
+    if (!enrollment) {
+      return NextResponse.json(
+        { 
+          error: "Access denied",
+          message: "You don't have permission to view this course"
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const course = await prisma.course.findUnique({
     where: { id },
     include: {

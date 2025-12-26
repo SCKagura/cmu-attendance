@@ -1,26 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { requireAdmin, PermissionError } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  try {
+    const user = await getCurrentUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Check if user is admin
-  const isAdmin = await prisma.userRole.findFirst({
-    where: {
-      userId: user.id,
-      role: { name: "ADMIN" },
-      courseId: null, // Global admin role
-    },
-  });
+    // Check if user is admin using new helper
+    await requireAdmin(user.id);
 
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   // Get all users with their roles
   const users = await prisma.user.findMany({
@@ -42,27 +35,26 @@ export async function GET() {
   });
 
   return NextResponse.json({ users });
+  } catch (error) {
+    // Handle permission errors
+    if (error && typeof error === 'object' && 'error' in error) {
+      const permError = error as PermissionError;
+      return NextResponse.json(permError, { status: 403 });
+    }
+    throw error;
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
+  try {
+    const user = await getCurrentUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Check if user is admin
-  const isAdmin = await prisma.userRole.findFirst({
-    where: {
-      userId: user.id,
-      role: { name: "ADMIN" },
-      courseId: null,
-    },
-  });
-
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // Check if user is admin
+    await requireAdmin(user.id);
 
   const { userId, roleName } = await req.json();
 
@@ -105,27 +97,26 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, userRole });
+  } catch (error) {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const permError = error as PermissionError;
+      return NextResponse.json(permError, { status: 403 });
+    }
+    console.error("Error in POST /api/admin/users:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
-  const user = await getCurrentUser();
+  try {
+    const user = await getCurrentUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Check if user is admin
-  const isAdmin = await prisma.userRole.findFirst({
-    where: {
-      userId: user.id,
-      role: { name: "ADMIN" },
-      courseId: null,
-    },
-  });
-
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // Check if user is admin
+    await requireAdmin(user.id);
 
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
@@ -194,6 +185,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const permError = error as PermissionError;
+      return NextResponse.json(permError, { status: 403 });
+    }
     console.error("Admin delete error:", error);
     return NextResponse.json(
       { error: "Failed to perform action" },
@@ -203,24 +198,15 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const user = await getCurrentUser();
+  try {
+    const user = await getCurrentUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Check if user is admin
-  const isAdmin = await prisma.userRole.findFirst({
-    where: {
-      userId: user.id,
-      role: { name: "ADMIN" },
-      courseId: null,
-    },
-  });
-
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // Check if user is admin
+    await requireAdmin(user.id);
 
   const { userId, studentCode } = await req.json();
 
@@ -252,4 +238,12 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, user: updatedUser });
+  } catch (error) {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const permError = error as PermissionError;
+      return NextResponse.json(permError, { status: 403 });
+    }
+    console.error("Error in PATCH /api/admin/users:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
