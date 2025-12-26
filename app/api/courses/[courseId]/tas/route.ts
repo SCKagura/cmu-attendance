@@ -107,17 +107,26 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     // If role is TEACHER, we assign TEACHER role
     const targetRoleName = role === "TEACHER" ? "TEACHER" : "TA";
 
-    // Find or create the user
-    // NOTE: This might fail if cmuAccount is unique and exists but email is different?
-    // Using upsert on cmuAccount which is unique.
-    const targetUser = await prisma.user.upsert({
-      where: { cmuAccount: account },
-      update: {}, 
-      create: {
-        cmuAccount: account,
-        cmuEmail: email,
+    // Find existing user by cmuAccount, email, or student code
+    // Do NOT create new users - they must have logged in at least once
+    const targetUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { cmuAccount: account },
+          { cmuEmail: email },
+          { studentCode: account }, // Support searching by student code
+        ],
       },
     });
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { 
+          error: `User not found. The person must log in to the system at least once before being added as ${targetRoleName}.` 
+        },
+        { status: 404 }
+      );
+    }
 
     console.log("Target user:", targetUser.id);
 
