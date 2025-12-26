@@ -1,0 +1,40 @@
+﻿node.exe : Γ¥î Failed to instantiate: 
+TypeError: Cannot read properties of 
+undefined (reading '__internal')
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified 
+   : (Γ¥î Failed to i...g '__internal'):S  
+  tring) [], RemoteException
+    + FullyQualifiedErrorId : NativeComman 
+   dError
+ 
+    at new t (C:\Users\allip\Desktop\CMU\Ye
+ar4_Term2\Project\cmu-attendance\node_modul
+es\@prisma\client\src\runtime\getPrismaClie
+nt.ts:239:27)
+    at <anonymous> (C:\Users\allip\Desktop\
+CMU\Year4_Term2\Project\cmu-attendance\scri
+pts\test-db-simple.ts:3:18)
+    at Object.<anonymous> (C:\Users\allip\D
+esktop\CMU\Year4_Term2\Project\cmu-attendan
+ce\scripts\test-db-simple.ts:7:1)
+    at Module._compile 
+(node:internal/modules/cjs/loader:1761:14)
+    at Object.transformer (C:\Users\allip\A
+ppData\Local\npm-cache\_npx\fd45a72a545557e
+9\node_modules\tsx\dist\register-D46fvsV_.c
+js:3:1104)
+    at Module.load 
+(node:internal/modules/cjs/loader:1481:32)
+    at Module._load 
+(node:internal/modules/cjs/loader:1300:12)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:328:14)
+    at wrapModuleLoad 
+(node:internal/modules/cjs/loader:245:24)
+    at loadCJSModuleWithModuleLoad (node:in
+ternal/modules/esm/translators:336:3)

@@ -1,0 +1,155 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String  @id @default(cuid())
+  cmuAccount     String  @unique
+  cmuEmail       String  @unique
+  studentCode    String? @unique
+  displayNameTh  String?
+  displayNameEn  String?
+  organizationTh String?
+  organizationEn String?
+  isCmu          Boolean @default(true)
+  itaccounttype_id String? // "StdAcc" for students, "EmpAcc" for teachers/staff
+
+
+  roles        UserRole[]
+  enrollments  Enrollment[]
+  attendances  Attendance[] @relation("StudentAttendances")
+  scans        Attendance[] @relation("ScannerAttendances")
+  auditLogs    AuditLog[]
+  ownedCourses Course[]     @relation("CourseOwner")
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Role {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  userRoles UserRole[]
+}
+
+model UserRole {
+  id       Int     @id @default(autoincrement())
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  role     Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId   Int
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId, courseId])
+}
+
+model Course {
+  id           Int     @id @default(autoincrement())
+  courseCode   String
+  courseNameTh String?
+  courseNameEn   String?
+  instructorName String?
+  academicYear Int
+  semester     Int
+  ownerId      String
+  activeSections String? // JSON array of "lec|lab" strings for filtering roster view
+
+  owner User @relation("CourseOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  enrollments   Enrollment[]
+  classSessions ClassSession[]
+  userRoles     UserRole[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Enrollment {
+  id          Int     @id @default(autoincrement())
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId    Int
+  student     User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  studentCode String
+  section     String?
+  labSection  String?
+  importIndex Int?
+  isActive    Boolean @default(true) // Track active roster vs historical data
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, studentId])
+  @@unique([courseId, studentCode])
+}
+
+model ClassSession {
+  id         Int      @id @default(autoincrement())
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId   Int
+  name       String
+  classIndex String?
+  date       DateTime
+  startTime  DateTime
+  endTime    DateTime
+  keyword    String
+  expiresAt  DateTime
+
+  preHashedSalt  String?
+  preHashedValue String?
+
+  attendances Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id             Int          @id @default(autoincrement())
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  classSessionId Int
+
+  student   User   @relation("StudentAttendances", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+
+  scanner   User   @relation("ScannerAttendances", fields: [scannerId], references: [id], onDelete: Cascade)
+  scannerId String
+
+  checkedAt  DateTime         @default(now())
+  status     String
+  payloadRaw String?
+  ip         String?
+  deviceInfo String?
+  note       String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([classSessionId, studentId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  action    String
+  meta      String?
+  createdAt DateTime @default(now())
+}
+
+model TokenLog {
+  id        Int      @id @default(autoincrement())
+  token     String
+  device    String?
+  url       String
+  ip        String?
+  userAgent String?
+  referer   String?
+  createdAt DateTime @default(now())
+}
