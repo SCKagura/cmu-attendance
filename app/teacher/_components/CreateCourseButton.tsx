@@ -67,7 +67,7 @@ export default function CreateCourseButton({
         />
         <div className="absolute inset-x-0 top-14 mx-auto w-[min(560px,92vw)] rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">สร้างรายวิชาใหม่</h3>
+            <h3 className="text-lg font-semibold text-white">สร้างรายวิชาใหม่</h3>
             <button
               onClick={() => setOpen(false)}
               className="text-zinc-400 hover:text-white"
@@ -82,7 +82,7 @@ export default function CreateCourseButton({
             <label className="flex flex-col gap-1">
               <span className="text-sm text-zinc-300">รหัสวิชา</span>
               <input
-                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2"
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
                 value={courseCode}
                 onChange={(e) => setCourseCode(e.target.value)}
                 required
@@ -92,7 +92,7 @@ export default function CreateCourseButton({
             <label className="md:col-span-2 flex flex-col gap-1">
               <span className="text-sm text-zinc-300">ชื่อวิชา</span>
               <input
-                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2"
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
                 value={courseNameTh}
                 onChange={(e) => setCourseNameTh(e.target.value)}
                 placeholder="ชื่อวิชาของคุณ"
@@ -102,7 +102,7 @@ export default function CreateCourseButton({
               <span className="text-sm text-zinc-300">ปีการศึกษา</span>
               <input
                 type="number"
-                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2"
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-white"
                 value={academicYear}
                 onChange={(e) => setAcademicYear(Number(e.target.value))}
                 required
@@ -114,7 +114,7 @@ export default function CreateCourseButton({
                 type="number"
                 min={1}
                 max={3}
-                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2"
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-white"
                 value={semester}
                 onChange={(e) => setSemester(Number(e.target.value))}
                 required
@@ -127,13 +127,13 @@ export default function CreateCourseButton({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md bg-zinc-800 px-3 py-2 hover:bg-zinc-700"
+                className="rounded-md bg-zinc-800 px-3 py-2 text-white hover:bg-zinc-700"
               >
                 ยกเลิก
               </button>
               <button
                 disabled={loading}
-                className="rounded-md bg-fuchsia-600 px-4 py-2 hover:bg-fuchsia-500 disabled:opacity-60"
+                className="rounded-md bg-fuchsia-600 px-4 py-2 text-white hover:bg-fuchsia-500 disabled:opacity-60"
               >
                 {loading ? "กำลังบันทึก…" : "สร้างรายวิชา"}
               </button>

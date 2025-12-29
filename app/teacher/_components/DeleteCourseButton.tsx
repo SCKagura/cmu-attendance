@@ -20,7 +20,7 @@ export default function DeleteCourseButton({ id }: { id: number }) {
     <button
       onClick={onDelete}
       disabled={loading}
-      className="rounded bg-red-600 px-3 py-1 text-sm hover:bg-red-500 disabled:opacity-60"
+      className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-500 disabled:opacity-60"
     >
       ลบรายวิชา
     </button>
