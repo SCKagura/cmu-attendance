@@ -1,6 +1,5 @@
 // app/student/page.tsx
 import { getCurrentUser, getCurrentUserGlobalRoles } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import PortalSelector from "./PortalSelector";
 
 export const dynamic = "force-dynamic";
@@ -35,19 +34,6 @@ export default async function StudentPage() {
   // Get user's global roles
   const roles = await getCurrentUserGlobalRoles();
 
-  // If user has only one role, redirect directly
-  if (roles.length === 1) {
-    if (roles.includes("STUDENT")) {
-      redirect("/student/courses");
-    } else if (roles.includes("TEACHER") || roles.includes("CO_TEACHER")) {
-      redirect("/teacher");
-    } else if (roles.includes("TA")) {
-      redirect("/ta");
-    } else if (roles.includes("ADMIN")) {
-      redirect("/admin");
-    }
-  }
-
-  // Show portal selection if user has multiple roles
+  // Always show portal selection - let user choose their portal
   return <PortalSelector roles={roles} />;
 }

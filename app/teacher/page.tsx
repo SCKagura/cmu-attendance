@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import CreateCourseButton from "./_components/CreateCourseButton";
 import TeacherDashboardClient from "./TeacherDashboardClient";
+import LogoutButton from "@/components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,10 @@ export default async function TeacherPage() {
               Welcome, {user.displayNameTh || user.displayNameEn || user.cmuAccount}
             </p>
           </div>
-          <CreateCourseButton />
+          <div className="flex items-center gap-3">
+            <CreateCourseButton />
+            <LogoutButton />
+          </div>
         </header>
 
         <TeacherDashboardClient

@@ -134,8 +134,30 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 3. Check by email if still not found (prevent duplicate email error)
+    if (!user && email) {
+      const existingByEmail = await prisma.user.findUnique({
+        where: { cmuEmail: email },
+      });
+
+      if (existingByEmail) {
+        // Found by email -> Update with new cmuAccount
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            cmuAccount, // Update account
+            studentCode: studentCode || existingByEmail.studentCode,
+            displayNameTh: displayNameTh || existingByEmail.displayNameTh,
+            displayNameEn: displayNameEn || existingByEmail.displayNameEn,
+            organizationTh: orgTh,
+            organizationEn: orgEn,
+          },
+        });
+      }
+    }
+
     if (!user) {
-      // 3. Still not found -> Create new real account
+      // 4. Still not found -> Create new real account
       user = await prisma.user.create({
         data: {
           cmuAccount,
@@ -188,20 +210,9 @@ export async function GET(req: NextRequest) {
 
 
 
-    // Determine redirect URL based on roles priority
-    const roles = await getUserRoles(user.id);
-    let redirectTo = "/student"; // Default for Student (already using CMU Mobile)
-
-    if (roles.includes("ADMIN")) {
-      redirectTo = "/admin";
-    } else if (roles.includes("TEACHER") || roles.includes("CO_TEACHER")) {
-      redirectTo = "/teacher";
-    } else if (roles.includes("TA")) {
-      redirectTo = "/ta";
-    } else if (roles.includes("STUDENT")) {
-      // Student accessing via CMU Mobile - allow access to /student
-      redirectTo = "/student";
-    }
+    // Always redirect to root for portal selection
+    // Let the user choose their portal based on their roles
+    const redirectTo = "/";
 
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
     const proto = req.headers.get("x-forwarded-proto") || "http";
@@ -219,7 +230,6 @@ export async function GET(req: NextRequest) {
         cmuAccount: user.cmuAccount,
         studentCode: user.studentCode,
         displayName: user.displayNameTh || user.displayNameEn,
-        roles: roles,
         redirectTo: redirectTo
     });
 

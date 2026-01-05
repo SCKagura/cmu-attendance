@@ -23,6 +23,13 @@ export default function LoginPage() {
             </Link>
           )}
 
+          {/* Dev/Zap Login Link */}
+          <Link
+            href="/auth/login"
+            className="block w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 text-center border border-slate-600"
+          >
+            🛠️ Dev/Zap Login (Username/Pw)
+          </Link>
         </div>
 
         <div className="mt-6 text-center text-sm text-gray-400">

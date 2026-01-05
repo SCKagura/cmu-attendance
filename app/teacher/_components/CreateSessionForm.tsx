@@ -89,22 +89,22 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
       onSubmit={onSubmit}
       className="space-y-4"
     >
-      <h2 className="font-semibold mb-1">สร้างคาบใหม่</h2>
+      <h2 className="font-semibold mb-1 text-white">สร้างคาบใหม่</h2>
 
       <div className="grid md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm mb-1">ชื่อคาบ</label>
+          <label className="block text-sm mb-1 text-white/80">ชื่อคาบ</label>
           <input
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
+            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm text-white placeholder:text-neutral-500"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Lecture 1 / Lab 2 / ..."
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Keyword</label>
+          <label className="block text-sm mb-1 text-white/80">Keyword</label>
           <input
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm font-mono"
+            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm font-mono text-white placeholder:text-neutral-500"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="CHECKIN"
@@ -116,20 +116,20 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm mb-1">เวลาเริ่ม (Start Time)</label>
+          <label className="block text-sm mb-1 text-white/80">เวลาเริ่ม (Start Time)</label>
           <input
             type="datetime-local"
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
+            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm text-white"
             value={start}
             onChange={handleStartChange}
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm mb-1">หมดเวลาเช็กอิน (Deadline)</label>
+          <label className="block text-sm mb-1 text-white/80">หมดเวลาเช็กอิน (Deadline)</label>
           <input
             type="datetime-local"
-            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm"
+            className="w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-sm text-white"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
           />
@@ -142,7 +142,7 @@ export default function CreateSessionForm({ courseId }: { courseId: number }) {
         <button
           type="submit"
           disabled={saving}
-          className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 text-sm font-medium disabled:opacity-50"
+          className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white disabled:opacity-50"
         >
           {saving ? "กำลังบันทึก..." : "บันทึกคาบ"}
         </button>

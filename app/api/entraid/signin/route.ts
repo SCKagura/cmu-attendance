@@ -199,6 +199,29 @@ export async function POST(
       }
     }
 
+    // 3. Check by email if still not found (prevent duplicate email error)
+    if (!user && email) {
+      const existingByEmail = await prisma.user.findUnique({
+        where: { cmuEmail: email },
+      });
+
+      if (existingByEmail) {
+        // Found by email -> Update with new cmuAccount
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            cmuAccount, // Update account
+            studentCode: studentCode || existingByEmail.studentCode,
+            displayNameTh: displayNameTh || existingByEmail.displayNameTh,
+            displayNameEn: displayNameEn || existingByEmail.displayNameEn,
+            organizationTh: orgTh,
+            organizationEn: orgEn,
+            itaccounttype_id,
+          },
+        });
+      }
+    }
+
     if (!user) {
       // Create new user
       user = await prisma.user.create({

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser, getUserRoles } from "@/lib/auth";
+import { getCurrentUser, getCurrentUserGlobalRoles } from "@/lib/auth";
+import PortalSelector from "./student/PortalSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -21,17 +22,9 @@ export default async function Home(props: {
     redirect("/login");
   }
 
-  // Determine redirect URL based on roles priority
-  const roles = await getUserRoles(user.id);
+  // Get user's global roles
+  const roles = await getCurrentUserGlobalRoles();
 
-  if (roles.includes("ADMIN")) {
-    redirect("/admin");
-  } else if (roles.includes("TEACHER") || roles.includes("CO_TEACHER")) {
-    redirect("/teacher");
-  } else if (roles.includes("TA")) {
-    redirect("/ta");
-  } else {
-    // Default to mobile required page for students
-    redirect("/mobile-required");
-  }
+  // Show portal selector - let user choose their portal
+  return <PortalSelector roles={roles} />;
 }

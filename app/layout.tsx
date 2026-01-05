@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{
-  child
+  children: React.ReactNode;
 }>) {
   // Log token if present in headers (set by middleware)
   await logTokenFromHeaders();

@@ -149,8 +149,11 @@ export async function GET(req: NextRequest, ctx: Ctx) {
         const date = new Date(s.date).toLocaleDateString("th-TH", { day: 'numeric', month: 'short' });
         return `${date}\n${s.name}`;
     }),
-    "Total Present",
-    "%"
+    "Present",
+    "Late",
+    "Absent",
+    "Leave",
+    "Attendance"
   ];
 
   const headerRow = worksheet.getRow(4);
@@ -176,16 +179,22 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       worksheet.getColumn(6 + i).width = 12;
   }
   
-  // Stats columns
+  // Stats columns (Present, Late, Absent, Leave, Attendance %)
   const statsStartCol = 6 + course.classSessions.length;
-  worksheet.getColumn(statsStartCol).width = 12;
-  worksheet.getColumn(statsStartCol + 1).width = 10;
+  worksheet.getColumn(statsStartCol).width = 10;     // Present
+  worksheet.getColumn(statsStartCol + 1).width = 10; // Late
+  worksheet.getColumn(statsStartCol + 2).width = 10; // Absent
+  worksheet.getColumn(statsStartCol + 3).width = 10; // Leave
+  worksheet.getColumn(statsStartCol + 4).width = 12; // Attendance %
 
   // Add data rows
   let rowIndex = 5;
   enrollments.forEach((e, index) => {
     const studentAtts = attendanceMap.get(e.student.id);
     let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+    let leaveCount = 0;
 
     const rowValues: (string | number)[] = [
       e.importIndex || (index + 1), // Use importIndex if available, fallback to index+1
@@ -195,23 +204,45 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       e.student.displayNameTh || e.student.displayNameEn || "",
     ];
 
-    // Add session data
+    // Add session data and count statuses
     course.classSessions.forEach((s) => {
       const att = studentAtts?.get(s.id);
       if (att) {
-        presentCount++;
-        rowValues.push("✓");
+        const status = att.status?.toUpperCase() || "";
+        if (status === "PRESENT") {
+          presentCount++;
+          rowValues.push("✅");
+        } else if (status === "LATE") {
+          lateCount++;
+          rowValues.push("⏰");
+        } else if (status === "LEAVE") {
+          leaveCount++;
+          rowValues.push("😷");
+        } else if (status === "ABSENT") {
+          absentCount++;
+          rowValues.push("❌");
+        } else {
+          // Unknown status, treat as present
+          presentCount++;
+          rowValues.push("✅");
+        }
       } else {
-        rowValues.push("•");
+        absentCount++;
+        rowValues.push("❌");
       }
     });
 
     // Add stats
     const totalSessions = course.classSessions.length;
-    const percent = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
+    // Count Present + Leave as "attended"
+    const attendedCount = presentCount + leaveCount;
+    const percent = totalSessions > 0 ? Math.round((attendedCount / totalSessions) * 100) : 0;
     
     rowValues.push(presentCount);
-    rowValues.push(`${percent}%`);
+    rowValues.push(lateCount);
+    rowValues.push(absentCount);
+    rowValues.push(leaveCount);
+    rowValues.push(percent); // Just the number, no % symbol
 
     const row = worksheet.getRow(rowIndex);
     row.values = rowValues;
@@ -234,8 +265,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     }
 
     // Stats styling
-    row.getCell(statsStartCol).alignment = { horizontal: "center" };
-    const percentCell = row.getCell(statsStartCol + 1);
+    row.getCell(statsStartCol).alignment = { horizontal: "center" };     // Present
+    row.getCell(statsStartCol + 1).alignment = { horizontal: "center" }; // Late
+    row.getCell(statsStartCol + 2).alignment = { horizontal: "center" }; // Absent
+    row.getCell(statsStartCol + 3).alignment = { horizontal: "center" }; // Leave
+    
+    const percentCell = row.getCell(statsStartCol + 4); // Attendance %
     percentCell.alignment = { horizontal: "center" };
     
     if (percent < 50) percentCell.font = { color: { argb: "FFFF0000" } };

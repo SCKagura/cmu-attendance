@@ -270,17 +270,42 @@ export default function AttendanceMatrixClient({ course, attendances }: Props) {
                                             </td>
                                             {sessions.map((sess: any) => {
                                                 const att = studentAtts?.get(sess.id);
+                                                const status = att?.status?.toUpperCase() || "";
+                                                
+                                                let emoji = "❌";
+                                                let bgColor = "bg-red-500/10";
+                                                let textColor = "text-red-400";
+                                                
+                                                if (att) {
+                                                    if (status === "PRESENT") {
+                                                        emoji = "✅";
+                                                        bgColor = "bg-green-500/20";
+                                                        textColor = "text-green-400";
+                                                    } else if (status === "LATE") {
+                                                        emoji = "⏰";
+                                                        bgColor = "bg-yellow-500/20";
+                                                        textColor = "text-yellow-400";
+                                                    } else if (status === "LEAVE") {
+                                                        emoji = "😷";
+                                                        bgColor = "bg-blue-500/20";
+                                                        textColor = "text-blue-400";
+                                                    } else if (status === "ABSENT") {
+                                                        emoji = "❌";
+                                                        bgColor = "bg-red-500/10";
+                                                        textColor = "text-red-400";
+                                                    } else {
+                                                        // Unknown status, treat as present
+                                                        emoji = "✅";
+                                                        bgColor = "bg-green-500/20";
+                                                        textColor = "text-green-400";
+                                                    }
+                                                }
+                                                
                                                 return (
                                                     <td key={sess.id} className="px-2 py-2 text-center border-r border-white/10">
-                                                        {att ? (
-                                                            <span className="inline-block w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-xs">
-                                                                ✓
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-block w-6 h-6 rounded-full bg-red-500/10 text-red-400/50 flex items-center justify-center text-xs">
-                                                                •
-                                                            </span>
-                                                        )}
+                                                        <span className={`inline-block w-6 h-6 rounded-full ${bgColor} ${textColor} flex items-center justify-center text-xs`}>
+                                                            {emoji}
+                                                        </span>
                                                     </td>
                                                 );
                                             })}

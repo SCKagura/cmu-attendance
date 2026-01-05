@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CreateUserForm } from "./_components/CreateUserForm";
+import LogoutButton from "@/components/LogoutButton";
 
 type User = {
   id: string;
@@ -190,17 +191,11 @@ export default function AdminPage() {
           <h2 className="font-bold mb-2">Error</h2>
           <p>{error}</p>
           <div className="mt-4 flex flex-col gap-2">
-            <a
-              href="/api/auth/dev-login?account=admin&role=ADMIN&redirect=/admin"
-              className="inline-block text-blue-300 hover:text-blue-200 underline"
-            >
-              Dev Login (Admin)
-            </a>
             <Link
               href="/teacher"
-              className="inline-block text-white underline"
+              className="inline-block text-white underline hover:text-white/80"
             >
-              Go to Teacher Dashboard
+              Back to Dashboard
             </Link>
           </div>
         </div>
@@ -211,13 +206,14 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Link
             href="/teacher"
             className="text-white/80 hover:text-white flex items-center gap-2 transition-colors"
           >
             ← Back to Dashboard
           </Link>
+          <LogoutButton />
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 mb-6">

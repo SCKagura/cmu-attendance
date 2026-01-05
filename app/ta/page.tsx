@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import LogoutButton from "@/components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -80,12 +81,7 @@ export default async function TAPage() {
                             TA for {taCourses.length} course{taCourses.length !== 1 ? "s" : ""}
                         </p>
                     </div>
-                    <Link
-                        href="/"
-                        className="text-sm text-white/60 hover:text-white underline transition-colors"
-                    >
-                        ← Back to Home
-                    </Link>
+                    <LogoutButton />
                 </header>
 
                 <section>

@@ -2,6 +2,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 interface User {
   id: string;
@@ -59,23 +60,26 @@ export default function StudentPageClient({ user, enrollments }: Props) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Student Dashboard
-          </h1>
-          <div className="text-white/80">
-            <p className="font-semibold text-lg">
-              สวัสดี, {user.displayNameTh || user.cmuAccount}
-            </p>
-            <p className="text-sm">
-              Email: {user.cmuEmail} | Student Code: {user.studentCode ?? "-"}
-            </p>
-            {(user.organizationTh || user.organizationEn) && (
-              <p className="text-sm">
-                {user.organizationTh} / {user.organizationEn}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Student Dashboard
+            </h1>
+            <div className="text-white/80">
+              <p className="font-semibold text-lg">
+                สวัสดี, {user.displayNameTh || user.cmuAccount}
               </p>
-            )}
+              <p className="text-sm">
+                Email: {user.cmuEmail} | Student Code: {user.studentCode ?? "-"}
+              </p>
+              {(user.organizationTh || user.organizationEn) && (
+                <p className="text-sm">
+                  {user.organizationTh} / {user.organizationEn}
+                </p>
+              )}
+            </div>
           </div>
+          <LogoutButton />
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
